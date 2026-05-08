@@ -67,3 +67,20 @@ body {
 #btn-down { bottom: 0; left: 55px; width: 50px; height: 50px; border-bottom: 3px solid #00ffcc; }
 #btn-left { top: 55px; left: 0; width: 50px; height: 50px; border-left: 3px solid #00ffcc; }
 #btn-right { top: 55px; right: 0; width: 50px; height: 50px; border-right: 3px solid #00ffcc; }
+
+/* NUEVO: ESTILOS DEL INSPECTOR DE IMÁGENES */
+#image-inspector {
+  display: none; position: absolute; top: 5%; left: 10%; width: 80%; height: 90%;
+  background: rgba(0, 15, 10, 0.95); z-index: 3000; border: 4px solid #00ffcc;
+  flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 0 40px rgba(0, 255, 204, 0.5);
+}
+#inspector-img { 
+  max-width: 90%; max-height: 75%; border: 2px solid #fff; 
+  box-shadow: 0 0 15px rgba(255,255,255,0.2); background: #111;
+}
+#btn-close-inspector {
+  margin-top: 25px; padding: 15px 40px; font-size: 22px; font-family: 'Share Tech Mono', monospace;
+  background: #00ffcc; color: #000; border: none; cursor: pointer; text-transform: uppercase;
+  box-shadow: 0 0 10px rgba(0, 255, 204, 0.4); transition: 0.3s;
+}
+#btn-close-inspector:hover { background: #fff; box-shadow: 0 0 20px #fff; }

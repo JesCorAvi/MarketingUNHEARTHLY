@@ -1,6 +1,35 @@
 // script.js
 
 // ==========================================
+// FLAG GLOBAL DE PAUSA
+// ==========================================
+window.gamePaused = false;
+
+// ==========================================
+// 0. PRECARGA DE IMÁGENES (FUERA DE AFRAME)
+// ==========================================
+const imageCache = {};
+const conceptImages = [
+  'concepts/1.png','concepts/2.png','concepts/3.png','concepts/4.png',
+  'concepts/5.png','concepts/6.png','concepts/7.png','concepts/8.png',
+  'concepts/9.jpg','concepts/10.png','concepts/11.png'
+];
+
+// Precargamos todas las imágenes con JS nativo nada más cargar el script.
+// Esto fuerza al navegador a cachearlas antes de que el jugador interactúe.
+conceptImages.forEach(src => {
+  const img = new Image();
+  img.onload = () => { imageCache[src] = img.src; };
+  img.onerror = () => console.warn('No se pudo precargar: ' + src);
+  img.src = src;
+});
+
+// Función auxiliar: ahora el schema ya recibe la ruta directa (ej: 'concepts/3.png')
+function resolveImageSrc(src) {
+  return src || null;
+}
+
+// ==========================================
 // 1. MOVIMIENTO DEL JUGADOR
 // ==========================================
 AFRAME.registerComponent('physics-movement', {
@@ -58,10 +87,10 @@ AFRAME.registerComponent('physics-movement', {
 });
 
 // ==========================================
-// 2. IA DEL ENEMIGO (Mímica Pura, sin HUD)
+// 2. IA DEL ENEMIGO
 // ==========================================
 AFRAME.registerComponent('stalker-ai', {
-  schema: { force: {type: 'number', default: 900} },
+  schema: { force: {type: 'number', default: 1800} },
   init: function () {
     this.cameraEl = document.querySelector('#player-camera');
     this.playerBody = document.querySelector('#rig');
@@ -101,7 +130,7 @@ AFRAME.registerComponent('stalker-ai', {
   },
 
   tick: function (time, timeDelta) {
-    if (!this.el.body || !this.playerBody.body || !timeDelta || this.isGameOver) return;
+    if (!this.el.body || !this.playerBody.body || !timeDelta || this.isGameOver || window.gamePaused) return;
 
     const camera3D = this.cameraEl.getObject3D('camera');
     const camPos = new THREE.Vector3();
@@ -115,7 +144,6 @@ AFRAME.registerComponent('stalker-ai', {
 
     const loVesRealmente = this.checkVisibility(camPos, enemyPos, cameraDirection);
 
-    // --- LÓGICA DE STUN ---
     if (this.stunTimer > 0) {
       this.stunTimer -= timeDelta;
       this.el.body.velocity.set(0, 0, 0);
@@ -123,7 +151,6 @@ AFRAME.registerComponent('stalker-ai', {
       return; 
     }
 
-    // --- TELETRANSPORTE SEGURO E INVISIBLE ---
     this.teleportTimer += timeDelta;
     if (this.teleportTimer > 15000 && !loVesRealmente) {
       this.teleportTimer = 0; 
@@ -132,39 +159,33 @@ AFRAME.registerComponent('stalker-ai', {
       const behindDir = cameraDirection.clone().multiplyScalar(-1);
       behindDir.y = 0; behindDir.normalize();
       
-      // NUEVO: Comprobar qué obstáculos hay detrás del jugador
       this.raycaster.set(camPos, behindDir);
       const scene = this.el.sceneEl.object3D;
       const intersects = this.raycaster.intersectObjects(scene.children, true);
       
-      let distanciaTeleport = 6.0; // Distancia ideal
+      let distanciaTeleport = 6.0; 
       
       for (let i = 0; i < intersects.length; i++) {
         let obj = intersects[i].object;
-        // Ignoramos el modelo del jugador o el propio enemigo
         if (obj.el && (obj.el.id === 'rig' || obj.el.id === 'player-camera' || obj.el === this.el)) continue;
         
-        // Si hay un obstáculo a menos de 7 unidades, reducimos la distancia de teletransporte
         if (intersects[i].distance < 7.0) {
-            // Nos aseguramos de dejarlo al menos a 1.5 unidades de la cámara, y 1.5 separado de la pared
             distanciaTeleport = Math.max(1.5, intersects[i].distance - 1.5); 
         }
-        break; // Tomamos solo el primer obstáculo sólido
+        break; 
       }
       
-      // Aplicamos la distancia calculada en lugar de los 6 metros fijos
       const tpPos = camPos.clone().add(behindDir.multiplyScalar(distanciaTeleport));
       
-      // Mantenemos los límites del mapa originales
-      tpPos.x = Math.max(-23, Math.min(23, tpPos.x));
-      tpPos.z = Math.max(-23, Math.min(23, tpPos.z));
+      // NUEVOS LÍMITES AMPLIADOS PARA EL MAPA DE 100x100
+      tpPos.x = Math.max(-48, Math.min(48, tpPos.x));
+      tpPos.z = Math.max(-48, Math.min(48, tpPos.z));
       
       this.el.body.position.set(tpPos.x, this.el.body.position.y, tpPos.z);
       this.el.body.velocity.set(0,0,0);
       return; 
     }
 
-    // --- MOVIMIENTO NORMAL ---
     if (loVesRealmente) {
       this.el.body.velocity.set(0, 0, 0);
       this.el.body.force.set(0, 0, 0);
@@ -177,7 +198,6 @@ AFRAME.registerComponent('stalker-ai', {
       this.el.body.force.z += moveDir.z * this.data.force;
     }
 
-    // GAME OVER
     const distFinal = Math.sqrt(Math.pow(camPos.x - enemyPos.x, 2) + Math.pow(camPos.z - enemyPos.z, 2));
     if (distFinal < 1.2) {
       this.isGameOver = true;
@@ -208,8 +228,38 @@ AFRAME.registerComponent('recolectable', {
   }
 });
 
+
 // ==========================================
-// 4. LÓGICA DE INICIO Y BATERÍA
+// 4. LÓGICA DE NOTAS (INSPECTOR DE IMÁGENES)
+// ==========================================
+AFRAME.registerComponent('nota-interactiva', {
+  schema: { img: {type: 'string'} },
+  init: function () {
+    this.el.addEventListener('click', () => {
+      const src = resolveImageSrc(this.data.img);
+      if (!src) { console.error("No se encontró la imagen con ID: " + this.data.img); return; }
+
+      // 1. Primero liberar el Pointer Lock — el navegador necesita procesar
+      //    este evento antes de poder repintar el inspector correctamente.
+      document.exitPointerLock();
+
+      // 2. Esperamos dos frames (~32ms) para que el Pointer Lock se libere
+      //    del todo y el motor de render tenga un ciclo limpio para pintar.
+      setTimeout(() => {
+        const inspector = document.getElementById('image-inspector');
+        const imgEl = document.getElementById('inspector-img');
+
+        imgEl.src = '';           // reset para forzar onload incluso si es la misma imagen
+        imgEl.src = src;
+        inspector.style.display = 'flex';
+        window.gamePaused = true; // pausar enemigo mientras se lee la nota
+      }, 32);
+    });
+  }
+});
+
+// ==========================================
+// 5. LÓGICA DE INICIO Y BATERÍA
 // ==========================================
 window.addEventListener('DOMContentLoaded', () => {
   const btnStart = document.querySelector('#btn-start');
@@ -218,10 +268,19 @@ window.addEventListener('DOMContentLoaded', () => {
   const btnLinterna = document.querySelector('#btn-linterna');
   const dpad = document.querySelector('#dpad');
   const linterna = document.querySelector('#linterna');
-  const batteryLevel = document.querySelector('#battery-level'); // Interfaz de la Batería
+  const batteryLevel = document.querySelector('#battery-level');
   
+  // Botón para cerrar el inspector de imágenes
+  const btnCloseInspector = document.getElementById('btn-close-inspector');
+  btnCloseInspector.addEventListener('click', () => {
+    document.getElementById('image-inspector').style.display = 'none';
+    window.gamePaused = false; // reanudar enemigo
+    // Volver a capturar el ratón para seguir jugando
+    document.querySelector('a-scene').canvas.requestPointerLock();
+  });
+
   let linternaEncendida = false;
-  let bateria = 100; // Iniciamos con el 100%
+  let bateria = 100;
 
   btnStart.addEventListener('click', () => {
     startScreen.style.display = 'none';
@@ -233,7 +292,6 @@ window.addEventListener('DOMContentLoaded', () => {
     document.querySelector('a-scene').canvas.click();
   });
 
-  // Modificamos la función para forzar el apagado si se queda sin batería
   function toggleLinterna(fuerzaApagado = false) {
     if (fuerzaApagado) {
       linternaEncendida = false;
@@ -252,23 +310,18 @@ window.addEventListener('DOMContentLoaded', () => {
     if (event.key.toLowerCase() === 'e') toggleLinterna(false);
   });
 
-  // Bucle de gestión de la batería (Se actualiza cada 200 ms)
   setInterval(() => {
     if (linternaEncendida) {
-      bateria -= 1.5; // La batería se agota al estar encendida
+      bateria -= 1.5; 
       if (bateria <= 0) {
         bateria = 0;
-        toggleLinterna(true); // Se apaga de golpe al llegar a 0
+        toggleLinterna(true); 
       }
     } else {
-      bateria += 1.0; // La batería se recarga sola al estar apagada
+      bateria += 1.0; 
       if (bateria > 100) bateria = 100;
     }
-
-    // Actualizar el texto visual
     batteryLevel.innerText = Math.floor(bateria) + "%";
-    
-    // Cambiar color a rojo si está por debajo del 20%
     if (bateria <= 20) {
       batteryLevel.style.color = "#ff3333";
     } else {

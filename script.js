@@ -1,11 +1,6 @@
 // script.js
 
 // ==========================================
-// FLAG GLOBAL DE PAUSA
-// ==========================================
-window.gamePaused = false;
-
-// ==========================================
 // 0. PRECARGA DE IMÁGENES (FUERA DE AFRAME)
 // ==========================================
 const imageCache = {};
@@ -65,6 +60,13 @@ AFRAME.registerComponent('physics-movement', {
   
   tick: function () {
     if (!this.el.body) return; 
+
+    // Si el movimiento está bloqueado (inspector abierto), detener al jugador y salir
+    if (window.isMovementBlocked) {
+      this.el.body.velocity.set(0, 0, 0);
+      return; 
+    }
+
     let moveX = this.touchX; let moveZ = this.touchZ;
     if (this.keys.w) moveZ -= 1; if (this.keys.s) moveZ += 1;
     if (this.keys.a) moveX -= 1; if (this.keys.d) moveX += 1;
@@ -99,6 +101,17 @@ AFRAME.registerComponent('stalker-ai', {
     this.teleportTimer = 0; 
     this.stunTimer = 0; 
 
+    // Control de los 10 segundos de gracia iniciales
+    this.initialGracePeriod = true;
+    this.graceTimer = 0;
+
+    // Puntos de spawn 100% seguros basados en la geometría de tu laberinto
+    this.safeSpawns = [
+      {x: 22, z: 22}, {x: -22, z: 22}, {x: 22, z: -22}, {x: -22, z: -22},
+      {x: 0, z: 0}, {x: 14, z: 0}, {x: -14, z: 0}, {x: 0, z: 8}, {x: 0, z: -8},
+      {x: -20, z: 15}, {x: 20, z: 15}, {x: -20, z: -15}, {x: 20, z: -15}
+    ];
+
     this.el.addEventListener('body-loaded', () => {
       this.el.body.fixedRotation = true;
       this.el.body.updateMassProperties();
@@ -130,7 +143,37 @@ AFRAME.registerComponent('stalker-ai', {
   },
 
   tick: function (time, timeDelta) {
-    if (!this.el.body || !this.playerBody.body || !timeDelta || this.isGameOver || window.gamePaused) return;
+    if (!this.el.body || !this.playerBody.body || !timeDelta || this.isGameOver) return;
+
+    // Si el inspector está abierto, el Mímico se congela por completo
+    if (window.isMovementBlocked) {
+      this.el.body.velocity.set(0, 0, 0);
+      this.el.body.force.set(0, 0, 0);
+      return; 
+    }
+
+    // Lógica del tiempo de gracia inicial (10 segundos)
+    if (this.initialGracePeriod) {
+      this.graceTimer += timeDelta;
+      this.el.body.velocity.set(0, 0, 0);
+      this.el.body.force.set(0, 0, 0);
+
+      // Cuando pasan 10 segundos
+      if (this.graceTimer > 10000) {
+        this.initialGracePeriod = false;
+        
+        // Seleccionamos un punto de spawn seguro para evitar empotramientos
+        const randomSpawn = this.safeSpawns[Math.floor(Math.random() * this.safeSpawns.length)];
+        
+        // Teletransportar al Mímico y reiniciar sus contadores normales
+        this.el.body.position.set(randomSpawn.x, this.el.body.position.y, randomSpawn.z);
+        this.el.body.velocity.set(0, 0, 0);
+        this.teleportTimer = 0; 
+      }
+      return; 
+    }
+
+    // --- LÓGICA NORMAL DESPUÉS DE LOS 10 SEGUNDOS ---
 
     const camera3D = this.cameraEl.getObject3D('camera');
     const camPos = new THREE.Vector3();
@@ -177,9 +220,9 @@ AFRAME.registerComponent('stalker-ai', {
       
       const tpPos = camPos.clone().add(behindDir.multiplyScalar(distanciaTeleport));
       
-      // NUEVOS LÍMITES AMPLIADOS PARA EL MAPA DE 100x100
-      tpPos.x = Math.max(-48, Math.min(48, tpPos.x));
-      tpPos.z = Math.max(-48, Math.min(48, tpPos.z));
+      // LÍMITES CORREGIDOS (-23 a 23) PARA EL TAMAÑO REAL DEL LABERINTO
+      tpPos.x = Math.max(-23, Math.min(23, tpPos.x));
+      tpPos.z = Math.max(-23, Math.min(23, tpPos.z));
       
       this.el.body.position.set(tpPos.x, this.el.body.position.y, tpPos.z);
       this.el.body.velocity.set(0,0,0);
@@ -252,7 +295,9 @@ AFRAME.registerComponent('nota-interactiva', {
         imgEl.src = '';           // reset para forzar onload incluso si es la misma imagen
         imgEl.src = src;
         inspector.style.display = 'flex';
-        window.gamePaused = true; // pausar enemigo mientras se lee la nota
+        
+        // Bloquear el movimiento y al mímico mientras el inspector está visible
+        window.isMovementBlocked = true;
       }, 32);
     });
   }
@@ -274,9 +319,11 @@ window.addEventListener('DOMContentLoaded', () => {
   const btnCloseInspector = document.getElementById('btn-close-inspector');
   btnCloseInspector.addEventListener('click', () => {
     document.getElementById('image-inspector').style.display = 'none';
-    window.gamePaused = false; // reanudar enemigo
     // Volver a capturar el ratón para seguir jugando
     document.querySelector('a-scene').canvas.requestPointerLock();
+    
+    // Desbloquear el movimiento y reanudar al mímico
+    window.isMovementBlocked = false;
   });
 
   let linternaEncendida = false;

@@ -53,7 +53,13 @@
                   material="color: #00ffcc; shader: flat; opacity: 0.7"></a-entity>
       </a-camera>
 
-      <a-entity id="left-controller" laser-controls="hand: left" raycaster="objects: .scrap, .note; far: 3" line="color: #00ffcc; opacity: 0.5" haptics="events: low-battery-pulse; dur: 300; force: 0.6">
+      <a-entity id="left-controller" 
+                laser-controls="hand: left" 
+                oculus-touch-controls="hand: left"
+                vr-joystick-movement
+                raycaster="objects: .scrap, .note; far: 3" 
+                line="color: #00ffcc; opacity: 0.5" 
+                haptics="events: low-battery-pulse; dur: 300; force: 0.6">
         <a-entity id="vr-wrist-hud" position="0 0.12 -0.05" rotation="-45 0 0" visible="false">
           <a-plane width="0.12" height="0.06" color="#000f0a" material="opacity: 0.9"></a-plane>
           <a-text id="vr-loot-count" value="OBJ: 0/5" position="-0.05 0.015 0.001" scale="0.1 0.1 0.1" color="#00ffcc"></a-text>
@@ -66,7 +72,13 @@
         </a-entity>
       </a-entity>
 
-      <a-entity id="right-controller" laser-controls="hand: right" raycaster="objects: .scrap, .note; far: 3" line="color: #00ffcc; opacity: 0.5" haptics="events: low-battery-pulse; dur: 300; force: 0.6">
+      <a-entity id="right-controller" 
+                laser-controls="hand: right" 
+                oculus-touch-controls="hand: right"
+                vr-snap-turn="angle: 45"
+                raycaster="objects: .scrap, .note; far: 3" 
+                line="color: #00ffcc; opacity: 0.5" 
+                haptics="events: low-battery-pulse; dur: 300; force: 0.6">
         <a-entity id="linterna-vr" light="type: spot; color: #e6f2ff; intensity: 0; angle: 40; penumbra: 0.3; distance: 25; decay: 1.5" position="0 0 0" rotation="-15 0 0"></a-entity>
       </a-entity>
     </a-entity>
@@ -74,7 +86,7 @@
     <a-entity id="vr-controls-sign" position="0 2 20.5" visible="false">
       <a-plane width="3" height="1.8" color="#000f0a" material="opacity: 0.9"></a-plane>
       <a-text value="PROTOCOLO VR ACTIVO" position="0 0.6 0.05" align="center" width="4" color="#ff3333"></a-text>
-      <a-text value="IZQ: MOVERSE | AMBAS MANOS: INTERACTUAR\nLINTERNA: BOTONES A/B/X\nINFO HUD (Bateria y Obj): BOTON Y\nGUARDAR NOTA: GATILLO" 
+      <a-text value="IZQ: MOVERSE | DER: GIRAR CAMARA\nAMBAS MANOS: INTERACTUAR\nLINTERNA: BOTONES A/B/X\nINFO HUD (Bateria y Obj): BOTON Y\nGUARDAR NOTA: GATILLO" 
               position="0 -0.1 0.05" align="center" width="3" color="#00ffcc"></a-text>
       <a-text value="EL MIMICO SOLO SE DETIENE SI LO MIRAS." position="0 -0.6 0.05" align="center" width="2.5" color="#ff3333"></a-text>
     </a-entity>

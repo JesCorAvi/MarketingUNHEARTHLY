@@ -25,6 +25,18 @@
       <button id="btn-start">INICIAR INMERSIÓN</button>
     </div>
 
+    <div id="victory-screen" class="end-screen">
+      <h1>EXTRACCIÓN APROBADA</h1>
+      <p>Has sobrevivido y recuperado todos los activos.</p>
+      <p class="blink-text">Reiniciando simulación...</p>
+    </div>
+    
+    <div id="death-screen" class="end-screen">
+      <h1>PROTOCOLO FALLIDO</h1>
+      <p>El Mímico te ha atrapado.</p>
+      <p class="blink-text">Reiniciando simulación...</p>
+    </div>
+
     <div id="ui-container" style="display: none;">
       <div class="hud-box">
         <p>OBJETIVOS: <span id="loot-count" class="highlight">0</span> / 5</p>
@@ -52,6 +64,20 @@
                   raycaster="objects: .scrap, .note; far: 2"
                   geometry="primitive: ring; radiusInner: 0.008; radiusOuter: 0.015"
                   material="color: #00ffcc; shader: flat; opacity: 0.7"></a-entity>
+
+        <a-entity id="vr-victory-screen" visible="false" position="0 0 -0.8">
+          <a-plane width="1.5" height="0.8" color="#001a11" material="opacity: 0.95; shader: flat; depthTest: false"></a-plane>
+          <a-text value="EXTRACCION APROBADA" position="0 0.15 0.01" align="center" scale="0.4 0.4 0.4" color="#00ffcc" material="depthTest: false"></a-text>
+          <a-text value="Has sobrevivido y recuperado los activos." position="0 -0.05 0.01" align="center" scale="0.15 0.15 0.15" color="#fff" material="depthTest: false"></a-text>
+          <a-text value="Reiniciando simulacion..." position="0 -0.2 0.01" align="center" scale="0.12 0.12 0.12" color="#aaa" material="depthTest: false" animation="property: opacity; dir: alternate; dur: 1000; loop: true; from: 1; to: 0.3"></a-text>
+        </a-entity>
+
+        <a-entity id="vr-death-screen" visible="false" position="0 0 -0.8">
+          <a-plane width="1.5" height="0.8" color="#1a0000" material="opacity: 0.95; shader: flat; depthTest: false"></a-plane>
+          <a-text value="PROTOCOLO FALLIDO" position="0 0.15 0.01" align="center" scale="0.4 0.4 0.4" color="#ff3333" material="depthTest: false"></a-text>
+          <a-text value="El Mimico te ha atrapado." position="0 -0.05 0.01" align="center" scale="0.15 0.15 0.15" color="#fff" material="depthTest: false"></a-text>
+          <a-text value="Reiniciando simulacion..." position="0 -0.2 0.01" align="center" scale="0.12 0.12 0.12" color="#aaa" material="depthTest: false" animation="property: opacity; dir: alternate; dur: 1000; loop: true; from: 1; to: 0.3"></a-text>
+        </a-entity>
 
       </a-camera>
 
@@ -85,7 +111,6 @@
                 haptics="events: low-battery-pulse; dur: 300; force: 0.6">
                 
         <a-entity id="linterna-vr" light="type: spot; color: #e6f2ff; intensity: 0; angle: 40; penumbra: 0.3; distance: 25; decay: 1.5" rotation="-15 0 0"></a-entity>
-        
       </a-entity>
     </a-entity>
 

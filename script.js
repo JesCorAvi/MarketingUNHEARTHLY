@@ -1,10 +1,39 @@
 // script.js
 
-// NUEVO: Rastreador global INFALIBLE para saber si el jugador está usando las gafas
 window.isXRActive = false;
 
 // ==========================================
-// 0. PRECARGA DE IMÁGENES (FUERA DE AFRAME)
+// NUEVO: CONTROLADOR DE FIN DE JUEGO
+// ==========================================
+window.endGame = function(isVictory) {
+  // Bloquear al jugador (y al mímico)
+  window.isMovementBlocked = true;
+  
+  if (window.isXRActive) {
+    // Modo VR
+    if (isVictory) {
+      document.getElementById('vr-victory-screen').setAttribute('visible', 'true');
+    } else {
+      document.getElementById('vr-death-screen').setAttribute('visible', 'true');
+    }
+  } else {
+    // Modo PC
+    document.exitPointerLock();
+    if (isVictory) {
+      document.getElementById('victory-screen').style.display = 'flex';
+    } else {
+      document.getElementById('death-screen').style.display = 'flex';
+    }
+  }
+  
+  // Reiniciar nivel a los 4 segundos
+  setTimeout(() => {
+    location.reload();
+  }, 4000);
+};
+
+// ==========================================
+// 0. PRECARGA DE IMÁGENES
 // ==========================================
 const imageCache = {};
 const conceptImages = [
@@ -25,10 +54,8 @@ function resolveImageSrc(src) {
 }
 
 // ==========================================
-// COMPONENTES VR: MOVIMIENTO Y ROTACIÓN (QUEST)
+// COMPONENTES VR: MOVIMIENTO Y ROTACIÓN
 // ==========================================
-
-// --- MANDO IZQUIERDO: MOVIMIENTO DE TRASLACIÓN ---
 AFRAME.registerComponent('vr-joystick-movement', {
   init: function () {
     this.rig = document.querySelector('#rig');
@@ -54,7 +81,6 @@ AFRAME.registerComponent('vr-joystick-movement', {
   }
 });
 
-// --- MANDO DERECHO: GIRO POR PASOS (SNAP TURN) ---
 AFRAME.registerComponent('vr-snap-turn', {
   schema: { angle: { type: 'number', default: 45 } },
   init: function () {
@@ -65,22 +91,16 @@ AFRAME.registerComponent('vr-snap-turn', {
       if (window.isMovementBlocked) return;
       
       let x = e.detail.x;
-      
-      if (Math.abs(x) < 0.5) {
-        this.isTurning = false;
-        return;
-      }
+      if (Math.abs(x) < 0.5) { this.isTurning = false; return; }
 
       if (!this.isTurning) {
         let angleRad = THREE.MathUtils.degToRad(this.data.angle);
         let direction = x > 0 ? -angleRad : angleRad; 
-        
         this.rig.object3D.rotation.y += direction;
         
         if (this.rig.body) {
           this.rig.body.quaternion.copy(this.rig.object3D.quaternion);
         }
-        
         this.isTurning = true;
       }
     });
@@ -206,7 +226,6 @@ AFRAME.registerComponent('stalker-ai', {
       for (let i = 0; i < intersects.length; i++) {
         let obj = intersects[i].object;
         if (obj.el && this.playerBody.contains(obj.el)) continue;
-        
         firstObstacle = intersects[i];
         break;
       }
@@ -244,10 +263,8 @@ AFRAME.registerComponent('stalker-ai', {
     const camera3D = this.cameraEl.getObject3D('camera');
     const camPos = new THREE.Vector3();
     camera3D.getWorldPosition(camPos);
-
     const enemyPos = new THREE.Vector3();
     this.el.object3D.getWorldPosition(enemyPos);
-
     const cameraDirection = new THREE.Vector3();
     camera3D.getWorldDirection(cameraDirection);
 
@@ -273,19 +290,14 @@ AFRAME.registerComponent('stalker-ai', {
       const intersects = this.raycaster.intersectObjects(scene.children, true);
       
       let distanciaTeleport = 6.0; 
-      
       for (let i = 0; i < intersects.length; i++) {
         let obj = intersects[i].object;
         if (obj.el && (this.playerBody.contains(obj.el) || obj.el === this.el)) continue;
-        
-        if (intersects[i].distance < 7.0) {
-            distanciaTeleport = Math.max(1.5, intersects[i].distance - 1.5); 
-        }
+        if (intersects[i].distance < 7.0) { distanciaTeleport = Math.max(1.5, intersects[i].distance - 1.5); }
         break; 
       }
       
       const tpPos = camPos.clone().add(behindDir.multiplyScalar(distanciaTeleport));
-      
       tpPos.x = Math.max(-23, Math.min(23, tpPos.x));
       tpPos.z = Math.max(-23, Math.min(23, tpPos.z));
       
@@ -307,13 +319,10 @@ AFRAME.registerComponent('stalker-ai', {
     }
 
     const distFinal = Math.sqrt(Math.pow(camPos.x - enemyPos.x, 2) + Math.pow(camPos.z - enemyPos.z, 2));
-    if (distFinal < 1.2) {
+    if (distFinal < 1.2 && !this.isGameOver) {
       this.isGameOver = true;
-      document.exitPointerLock(); 
-      setTimeout(() => {
-        alert("EL MÍMICO TE HA ATRAPADO. PROTOCOLO FALLIDO.");
-        location.reload(); 
-      }, 50);
+      // NUEVO: Llamamos a la pantalla de Muerte (false)
+      window.endGame(false);
     }
   }
 });
@@ -326,6 +335,9 @@ const targetLoot = 5;
 AFRAME.registerComponent('recolectable', {
   init: function () {
     this.el.addEventListener('click', () => {
+      // Si el juego ya acabó, no sumar más puntos por bug
+      if (window.isMovementBlocked && document.getElementById('victory-screen').style.display !== 'none') return;
+
       lootCollected++;
       document.querySelector('#loot-count').innerText = lootCollected;
       
@@ -333,8 +345,10 @@ AFRAME.registerComponent('recolectable', {
       if (vrLoot) vrLoot.setAttribute('value', 'OBJ: ' + lootCollected + '/5');
 
       this.el.parentNode.removeChild(this.el); 
+      
       if (lootCollected >= targetLoot) {
-        setTimeout(() => alert("EXTRACCIÓN APROBADA. HAS SOBREVIVIDO."), 100);
+        // NUEVO: Llamamos a la pantalla de Victoria (true)
+        window.endGame(true);
       }
     });
   }
@@ -348,9 +362,8 @@ AFRAME.registerComponent('nota-interactiva', {
   init: function () {
     this.el.addEventListener('click', () => {
       const src = resolveImageSrc(this.data.img);
-      if (!src) { console.error("No se encontró la imagen con ID: " + this.data.img); return; }
+      if (!src) return;
 
-      // NUEVO: Usamos nuestro rastreador infalible
       if (window.isXRActive) {
         const vrInspectorContainer = document.getElementById('vr-inspector-container');
         const vrInspector = document.getElementById('vr-inspector');
@@ -358,21 +371,14 @@ AFRAME.registerComponent('nota-interactiva', {
         vrInspector.setAttribute('src', src);
         vrInspectorContainer.setAttribute('visible', 'true');
         
-        setTimeout(() => {
-            window.isMovementBlocked = true;
-        }, 100);
-
+        setTimeout(() => { window.isMovementBlocked = true; }, 100);
       } else {
         document.exitPointerLock();
-
         setTimeout(() => {
           const inspector = document.getElementById('image-inspector');
           const imgEl = document.getElementById('inspector-img');
-
-          imgEl.src = '';           
           imgEl.src = src;
           inspector.style.display = 'flex';
-          
           window.isMovementBlocked = true;
         }, 32);
       }
@@ -403,7 +409,6 @@ window.addEventListener('DOMContentLoaded', () => {
   let linternaEncendida = false;
   let bateria = 100;
 
-  // NUEVO: Eventos para rastrear al 100% si estamos en VR
   if (sceneEl) {
     sceneEl.addEventListener('enter-vr', () => { 
         window.isXRActive = true;
@@ -425,10 +430,13 @@ window.addEventListener('DOMContentLoaded', () => {
     document.querySelector('a-scene').canvas.click();
   });
 
-  // Función para cerrar notas en VR
   function closeVRNote() {
-    // NUEVO: Usamos window.isXRActive
     if (window.isMovementBlocked && window.isXRActive) {
+      // Evitar cerrar el juego entero si se aprieta un botón en la pantalla de victoria/muerte
+      const vicScreen = document.getElementById('vr-victory-screen').getAttribute('visible');
+      const deathScreen = document.getElementById('vr-death-screen').getAttribute('visible');
+      if (vicScreen || deathScreen) return false;
+
       document.getElementById('vr-inspector-container').setAttribute('visible', 'false');
       setTimeout(() => { window.isMovementBlocked = false; }, 100);
       return true; 
@@ -445,7 +453,6 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     }
     
-    // NUEVO: Decidimos qué linterna encender según nuestro rastreador
     const isVR = window.isXRActive;
     const linternaPC = document.querySelector('#linterna-pc');
     const linternaVR = document.querySelector('#linterna-vr');
@@ -462,18 +469,15 @@ window.addEventListener('DOMContentLoaded', () => {
     if (event.key.toLowerCase() === 'e') toggleLinterna(false);
   });
 
-  // --- CONTROLES DE MANDOS VR ---
   const rightController = document.getElementById('right-controller');
   const leftController = document.getElementById('left-controller');
 
-  // Mando Derecho
   if (rightController) {
     rightController.addEventListener('abuttondown', () => { if(!closeVRNote()) toggleLinterna(false); });
     rightController.addEventListener('bbuttondown', () => { if(!closeVRNote()) toggleLinterna(false); });
     rightController.addEventListener('triggerdown', () => { closeVRNote(); });
   }
 
-  // Mando Izquierdo
   if (leftController) {
     leftController.addEventListener('xbuttondown', () => { if(!closeVRNote()) toggleLinterna(false); });
     
@@ -496,21 +500,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
     if (linternaEncendida) {
       bateria -= 1.5; 
-      if (bateria <= 0) {
-        bateria = 0;
-        toggleLinterna(true); 
-      }
+      if (bateria <= 0) { bateria = 0; toggleLinterna(true); }
     } else {
       bateria += 1.0; 
       if (bateria > 100) bateria = 100;
     }
     
     batteryLevel.innerText = Math.floor(bateria) + "%";
-    if (bateria <= 20) {
-      batteryLevel.style.color = "#ff3333";
-    } else {
-      batteryLevel.style.color = "#00ffcc";
-    }
+    batteryLevel.style.color = bateria <= 20 ? "#ff3333" : "#00ffcc";
 
     const vrBat = document.querySelector('#vr-battery-level');
     if (vrBat) {

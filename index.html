@@ -45,7 +45,7 @@
               dynamic-body="mass: 70; shape: sphere; sphereRadius: 0.4; linearDamping: 0.9" physics-movement="force: 1200">
       
       <a-camera id="player-camera" position="0 1.0 0" look-controls="pointerLockEnabled: true" wasd-controls-enabled="false">
-        <a-entity id="linterna" light="type: spot; color: #e6f2ff; intensity: 0; angle: 40; penumbra: 0.3; distance: 25; decay: 1.5"></a-entity>
+        <a-entity id="linterna-pc" light="type: spot; color: #e6f2ff; intensity: 0; angle: 40; penumbra: 0.3; distance: 25; decay: 1.5"></a-entity>
         
         <a-entity cursor="rayOrigin: entity; fuse: false" position="0 0 -1"
                   raycaster="objects: .scrap, .note; far: 2"
@@ -66,13 +66,15 @@
         </a-entity>
       </a-entity>
 
-      <a-entity id="right-controller" laser-controls="hand: right" raycaster="objects: .scrap, .note; far: 3" line="color: #00ffcc; opacity: 0.5" haptics="events: low-battery-pulse; dur: 300; force: 0.6"></a-entity>
+      <a-entity id="right-controller" laser-controls="hand: right" raycaster="objects: .scrap, .note; far: 3" line="color: #00ffcc; opacity: 0.5" haptics="events: low-battery-pulse; dur: 300; force: 0.6">
+        <a-entity id="linterna-vr" light="type: spot; color: #e6f2ff; intensity: 0; angle: 40; penumbra: 0.3; distance: 25; decay: 1.5" position="0 0 0" rotation="-15 0 0"></a-entity>
+      </a-entity>
     </a-entity>
 
     <a-entity id="vr-controls-sign" position="0 2 20.5" visible="false">
       <a-plane width="3" height="1.8" color="#000f0a" material="opacity: 0.9"></a-plane>
       <a-text value="PROTOCOLO VR ACTIVO" position="0 0.6 0.05" align="center" width="4" color="#ff3333"></a-text>
-      <a-text value="IZQUIERDA: MOVERSE (Joystick)\nDERECHA: INTERACTUAR (Gatillo)\nLINTERNA: BOTONES A/B/X/Y\nGUARDAR NOTA: GATILLO" 
+      <a-text value="IZQUIERDA: MOVERSE (Joystick)\nDERECHA: INTERACTUAR Y APUNTAR LUZ\nLINTERNA: BOTONES A/B/X/Y\nGUARDAR NOTA: GATILLO" 
               position="0 -0.1 0.05" align="center" width="3" color="#00ffcc"></a-text>
       <a-text value="EL MIMICO SOLO SE DETIENE SI LO MIRAS." position="0 -0.6 0.05" align="center" width="2.5" color="#ff3333"></a-text>
     </a-entity>

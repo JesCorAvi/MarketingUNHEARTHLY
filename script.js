@@ -25,6 +25,37 @@ function resolveImageSrc(src) {
 }
 
 // ==========================================
+// COMPONENTE NUEVO: MOVIMIENTO VR INDEPENDIENTE
+// ==========================================
+AFRAME.registerComponent('vr-joystick-movement', {
+  init: function () {
+    // Referencia directa al jugador (el rig)
+    this.rig = document.querySelector('#rig');
+    
+    // Evento oficial de A-Frame para el joystick de Meta Quest
+    this.el.addEventListener('thumbstickmoved', (e) => {
+      const pm = this.rig.components['physics-movement'];
+      if (pm) {
+        pm.thumbstickX = Math.abs(e.detail.x) > 0.1 ? e.detail.x : 0;
+        pm.thumbstickZ = Math.abs(e.detail.y) > 0.1 ? e.detail.y : 0;
+      }
+    });
+
+    // Respaldo (fallback) para otros mandos que usan axismove genérico
+    this.el.addEventListener('axismove', (e) => {
+      const pm = this.rig.components['physics-movement'];
+      if (pm && e.detail.axis) {
+        // En visores modernos los ejes suelen ser el 2 y el 3
+        let x = e.detail.axis.length > 2 ? e.detail.axis[2] : e.detail.axis[0];
+        let y = e.detail.axis.length > 3 ? e.detail.axis[3] : e.detail.axis[1];
+        pm.thumbstickX = Math.abs(x) > 0.1 ? x : 0;
+        pm.thumbstickZ = Math.abs(y) > 0.1 ? y : 0;
+      }
+    });
+  }
+});
+
+// ==========================================
 // 1. MOVIMIENTO DEL JUGADOR
 // ==========================================
 AFRAME.registerComponent('physics-movement', {
@@ -57,19 +88,9 @@ AFRAME.registerComponent('physics-movement', {
     };
     setupBtn('btn-up', 0, -1); setupBtn('btn-down', 0, 1);
     setupBtn('btn-left', -1, 0); setupBtn('btn-right', 1, 0);
-
-    // Detección de joystick de Meta Quest (Mando Izquierdo)
-// Detección de joystick de Meta Quest (Mando Izquierdo)
-    const leftHand = document.getElementById('left-controller');
-    if (leftHand) {
-      leftHand.addEventListener('axismove', (e) => {
-        let x = e.detail.axis[0];
-        let y = e.detail.axis[1];
-        // Deadzone para evitar drift si el mando está suelto
-        this.thumbstickX = Math.abs(x) > 0.1 ? x : 0;
-        this.thumbstickZ = Math.abs(y) > 0.1 ? y : 0;
-      });
-    }
+    
+    // NOTA: Se ha eliminado la detección del leftHand de aquí, 
+    // ahora lo maneja el componente 'vr-joystick-movement'
   },
   
   tick: function () {

@@ -144,7 +144,10 @@ AFRAME.registerComponent('physics-movement', {
     
     if (moveX !== 0 || moveZ !== 0) {
        const length = Math.sqrt(moveX*moveX + moveZ*moveZ);
-       if(length > 1) { moveX /= length; moveZ /= length; }
+       if(length > 1) { 
+           moveX /= length; 
+           moveZ /= length; 
+       }
     } else {
        return; 
     }
@@ -359,7 +362,12 @@ AFRAME.registerComponent('nota-interactiva', {
         
         vrInspector.setAttribute('src', src);
         vrInspectorContainer.setAttribute('visible', 'true');
-        window.isMovementBlocked = true;
+        
+        // NUEVO: Retraso seguro para evitar que el mismo click la cierre de golpe y bloquee al jugador
+        setTimeout(() => {
+            window.isMovementBlocked = true;
+        }, 100);
+
       } else {
         document.exitPointerLock();
 
@@ -416,13 +424,17 @@ window.addEventListener('DOMContentLoaded', () => {
     document.querySelector('a-scene').canvas.click();
   });
 
-  function toggleLinterna(fuerzaApagado = false) {
-    if (window.isMovementBlocked && sceneEl.is('vr-mode')) {
+  // NUEVO: Función para cerrar notas en VR en lugar de que se encienda la linterna
+  function closeVRNote() {
+    if (window.isMovementBlocked && sceneEl && sceneEl.is('vr-mode')) {
       document.getElementById('vr-inspector-container').setAttribute('visible', 'false');
-      window.isMovementBlocked = false; 
-      return;
+      setTimeout(() => { window.isMovementBlocked = false; }, 100);
+      return true; 
     }
+    return false; 
+  }
 
+  function toggleLinterna(fuerzaApagado = false) {
     if (fuerzaApagado) {
       linternaEncendida = false;
     } else {
@@ -452,22 +464,27 @@ window.addEventListener('DOMContentLoaded', () => {
   const leftController = document.getElementById('left-controller');
 
   // Mando Derecho: A y B para la linterna (Gatillo libre para agarrar).
+  // NUEVO: Usamos if(!closeVRNote()) para que si hay una nota abierta, la cierre y no encienda la luz
   if (rightController) {
-    rightController.addEventListener('abuttondown', () => toggleLinterna(false));
-    rightController.addEventListener('bbuttondown', () => toggleLinterna(false));
+    rightController.addEventListener('abuttondown', () => { if(!closeVRNote()) toggleLinterna(false); });
+    rightController.addEventListener('bbuttondown', () => { if(!closeVRNote()) toggleLinterna(false); });
+    rightController.addEventListener('triggerdown', () => { closeVRNote(); });
   }
 
   // Mando Izquierdo: X para la linterna, Y para el reloj (HUD). (Gatillo libre para agarrar).
   if (leftController) {
-    leftController.addEventListener('xbuttondown', () => toggleLinterna(false));
+    leftController.addEventListener('xbuttondown', () => { if(!closeVRNote()) toggleLinterna(false); });
     
     leftController.addEventListener('ybuttondown', () => {
-      const vrHud = document.getElementById('vr-wrist-hud');
-      if (vrHud) {
-        const isVisible = vrHud.getAttribute('visible');
-        vrHud.setAttribute('visible', !isVisible);
+      if(!closeVRNote()) {
+        const vrHud = document.getElementById('vr-wrist-hud');
+        if (vrHud) {
+          const isVisible = vrHud.getAttribute('visible');
+          vrHud.setAttribute('visible', !isVisible);
+        }
       }
     });
+    leftController.addEventListener('triggerdown', () => { closeVRNote(); });
   }
 
   let tickCounter = 0;

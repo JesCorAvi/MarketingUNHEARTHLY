@@ -59,6 +59,7 @@ AFRAME.registerComponent('physics-movement', {
     setupBtn('btn-left', -1, 0); setupBtn('btn-right', 1, 0);
 
     // Detección de joystick de Meta Quest (Mando Izquierdo)
+// Detección de joystick de Meta Quest (Mando Izquierdo)
     const leftHand = document.getElementById('left-controller');
     if (leftHand) {
       leftHand.addEventListener('axismove', (e) => {

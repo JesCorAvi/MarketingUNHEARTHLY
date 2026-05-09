@@ -155,7 +155,10 @@ AFRAME.registerComponent('stalker-ai', {
       let firstObstacle = null;
       for (let i = 0; i < intersects.length; i++) {
         let obj = intersects[i].object;
-        if (obj.el && (obj.el.id === 'rig' || obj.el.id === 'player-camera')) continue;
+        
+        // FIX: this.playerBody.contains(obj.el) ignora el cursor, mandos, cámara, etc.
+        if (obj.el && this.playerBody.contains(obj.el)) continue;
+        
         firstObstacle = intersects[i];
         break;
       }
@@ -234,7 +237,9 @@ AFRAME.registerComponent('stalker-ai', {
       
       for (let i = 0; i < intersects.length; i++) {
         let obj = intersects[i].object;
-        if (obj.el && (obj.el.id === 'rig' || obj.el.id === 'player-camera' || obj.el === this.el)) continue;
+
+        // FIX: Misma corrección aquí para que no chocar contra tus propios mandos/cursor
+        if (obj.el && (this.playerBody.contains(obj.el) || obj.el === this.el)) continue;
         
         if (intersects[i].distance < 7.0) {
             distanciaTeleport = Math.max(1.5, intersects[i].distance - 1.5); 

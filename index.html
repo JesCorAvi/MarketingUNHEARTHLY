@@ -17,31 +17,33 @@
 
     <div class="crt-overlay"></div>
     
-    <div id="start-screen">
+<div id="start-screen">
       <div class="glitch-container"><h1 data-text="INTO THE UNHEARTH">INTO THE UNHEARTH</h1></div>
-      <div class="instructions">
-        <p>ESTADO DE LA MISIÓN: RECUPERAR ACTIVOS E INVESTIGAR DOCUMENTOS.</p>
-        <p>[PC]: Ratón para apuntar | Clic para inspeccionar | W A S D para moverte | [E] Linterna.</p>
-        <p class="warning">ADVERTENCIA: EL "PERCHERO MÍMICO" TE ACECHA. SÓLO SE DETIENE SI LO MIRAS FIJAMENTE.</p>
+      <div class="instructions" style="max-width: 800px;">
+        <p style="color: #fff; font-style: italic;">"Mi amigo bajó a esta mazmorra hace tres semanas. Nunca volvió. He rastreado la señal de su equipo hasta este nivel. Tengo que encontrar sus cosas antes de irme."</p>
+        <p>OBJETIVO: RECUPERAR LAS 5 PERTENENCIAS DE TU AMIGO.</p>
+        <p>[PC]: Ratón apuntar | Clic inspeccionar | W A S D moverte | [E] Linterna.</p>
+        <p class="warning">ADVERTENCIA: ALGO SE MUEVE EN LA OSCURIDAD. NO LE QUITES LOS OJOS DE ENCIMA.</p>
       </div>
-      <button id="btn-start">INICIAR INMERSIÓN</button>
+      <button id="btn-start">ENTRAR EN LA MAZMORRA</button>
     </div>
 
-    <div id="victory-screen" class="end-screen">
-      <h1>EXTRACCIÓN APROBADA</h1>
-      <p>Has sobrevivido y recuperado todos los activos.</p>
-      <p class="blink-text">Reiniciando simulación...</p>
+<div id="victory-screen" class="end-screen">
+      <h1>ESCAPE EXITOSO</h1>
+      <p>Has recuperado los objetos de tu amigo. Su memoria perdurará.</p>
+      <p>Pero sabes que él sigue aquí abajo...</p>
+      <p class="blink-text">Saliendo de la mazmorra...</p>
     </div>
     
     <div id="death-screen" class="end-screen">
-      <h1>PROTOCOLO FALLIDO</h1>
-      <p>El Mímico te ha atrapado.</p>
-      <p class="blink-text">Reiniciando simulación...</p>
+      <h1>TE HAS PERDIDO EN LA MAZMORRA</h1>
+      <p>El Mímico te ha reclamado. Ahora, al igual que tu amigo, eres parte de la mazmorra.</p>
+      <p class="blink-text">Tu señal se ha perdido...</p>
     </div>
 
     <div id="ui-container" style="display: none;">
       <div class="hud-box">
-        <p>OBJETIVOS: <span id="loot-count" class="highlight">0</span> / 5</p>
+        <p>OBJETOS: <span id="loot-count" class="highlight">0</span> / 5</p>
         <p>BATERÍA: <span id="battery-level" class="highlight">100%</span></p>
       </div>
     </div>
@@ -67,18 +69,18 @@
                   geometry="primitive: ring; radiusInner: 0.008; radiusOuter: 0.015"
                   material="color: #00ffcc; shader: flat; opacity: 0.7"></a-entity>
 
-        <a-entity id="vr-victory-screen" visible="false" position="0 0 -0.8">
+      <a-entity id="vr-victory-screen" visible="false" position="0 0 -0.8">
           <a-plane width="1.5" height="0.8" color="#001a11" material="opacity: 0.95; shader: flat; depthTest: false"></a-plane>
-          <a-text value="EXTRACCION APROBADA" position="0 0.15 0.01" align="center" scale="0.4 0.4 0.4" color="#00ffcc" material="depthTest: false"></a-text>
-          <a-text value="Has sobrevivido y recuperado los activos." position="0 -0.05 0.01" align="center" scale="0.15 0.15 0.15" color="#fff" material="depthTest: false"></a-text>
-          <a-text value="Reiniciando simulacion..." position="0 -0.2 0.01" align="center" scale="0.12 0.12 0.12" color="#aaa" material="depthTest: false" animation="property: opacity; dir: alternate; dur: 1000; loop: true; from: 1; to: 0.3"></a-text>
+          <a-text value="ESCAPE EXITOSO" position="0 0.15 0.01" align="center" scale="0.4 0.4 0.4" color="#00ffcc" material="depthTest: false"></a-text>
+          <a-text value="Has recuperado las cosas de tu amigo." position="0 -0.05 0.01" align="center" scale="0.15 0.15 0.15" color="#fff" material="depthTest: false"></a-text>
+          <a-text value="Saliendo de la mazmorra..." position="0 -0.2 0.01" align="center" scale="0.12 0.12 0.12" color="#aaa" material="depthTest: false" animation="property: opacity; dir: alternate; dur: 1000; loop: true; from: 1; to: 0.3"></a-text>
         </a-entity>
 
-        <a-entity id="vr-death-screen" visible="false" position="0 0 -0.8">
+      <a-entity id="vr-death-screen" visible="false" position="0 0 -0.8">
           <a-plane width="1.5" height="0.8" color="#1a0000" material="opacity: 0.95; shader: flat; depthTest: false"></a-plane>
-          <a-text value="PROTOCOLO FALLIDO" position="0 0.15 0.01" align="center" scale="0.4 0.4 0.4" color="#ff3333" material="depthTest: false"></a-text>
-          <a-text value="El Mimico te ha atrapado." position="0 -0.05 0.01" align="center" scale="0.15 0.15 0.15" color="#fff" material="depthTest: false"></a-text>
-          <a-text value="Reiniciando simulacion..." position="0 -0.2 0.01" align="center" scale="0.12 0.12 0.12" color="#aaa" material="depthTest: false" animation="property: opacity; dir: alternate; dur: 1000; loop: true; from: 1; to: 0.3"></a-text>
+          <a-text value="SEÑAL PERDIDA" position="0 0.15 0.01" align="center" scale="0.4 0.4 0.4" color="#ff3333" material="depthTest: false"></a-text>
+          <a-text value="El Mimico te reclamo. Ahora eres parte de la mazmorra." position="0 -0.05 0.01" align="center" scale="0.15 0.15 0.15" color="#fff" material="depthTest: false"></a-text>
+          <a-text value="Cerrando transmision..." position="0 -0.2 0.01" align="center" scale="0.12 0.12 0.12" color="#aaa" material="depthTest: false" animation="property: opacity; dir: alternate; dur: 1000; loop: true; from: 1; to: 0.3"></a-text>
         </a-entity>
 
       </a-camera>

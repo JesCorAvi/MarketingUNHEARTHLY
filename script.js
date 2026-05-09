@@ -1,5 +1,8 @@
 // script.js
 
+// NUEVO: Rastreador global INFALIBLE para saber si el jugador está usando las gafas
+window.isXRActive = false;
+
 // ==========================================
 // 0. PRECARGA DE IMÁGENES (FUERA DE AFRAME)
 // ==========================================
@@ -30,17 +33,14 @@ AFRAME.registerComponent('vr-joystick-movement', {
   init: function () {
     this.rig = document.querySelector('#rig');
     
-    // Captura el evento nativo de Oculus/Meta Quest
     this.el.addEventListener('thumbstickmoved', (e) => {
       const pm = this.rig.components['physics-movement'];
       if (pm) {
-        // Zona muerta (deadzone) de 0.15
         pm.thumbstickX = Math.abs(e.detail.x) > 0.15 ? e.detail.x : 0;
         pm.thumbstickZ = Math.abs(e.detail.y) > 0.15 ? e.detail.y : 0;
       }
     });
 
-    // Fallback genérico para WebXR
     this.el.addEventListener('axismove', (e) => {
       if (e.detail.axis.length < 4) return;
       const pm = this.rig.components['physics-movement'];
@@ -66,21 +66,17 @@ AFRAME.registerComponent('vr-snap-turn', {
       
       let x = e.detail.x;
       
-      // Zona muerta central
       if (Math.abs(x) < 0.5) {
         this.isTurning = false;
         return;
       }
 
-      // Evita girar como un taladro
       if (!this.isTurning) {
         let angleRad = THREE.MathUtils.degToRad(this.data.angle);
         let direction = x > 0 ? -angleRad : angleRad; 
         
-        // Rotación de la vista
         this.rig.object3D.rotation.y += direction;
         
-        // Sincronización con las físicas para evitar conflictos
         if (this.rig.body) {
           this.rig.body.quaternion.copy(this.rig.object3D.quaternion);
         }
@@ -354,16 +350,14 @@ AFRAME.registerComponent('nota-interactiva', {
       const src = resolveImageSrc(this.data.img);
       if (!src) { console.error("No se encontró la imagen con ID: " + this.data.img); return; }
 
-      const sceneEl = document.querySelector('a-scene');
-      
-      if (sceneEl.is('vr-mode')) {
+      // NUEVO: Usamos nuestro rastreador infalible
+      if (window.isXRActive) {
         const vrInspectorContainer = document.getElementById('vr-inspector-container');
         const vrInspector = document.getElementById('vr-inspector');
         
         vrInspector.setAttribute('src', src);
         vrInspectorContainer.setAttribute('visible', 'true');
         
-        // NUEVO: Retraso seguro para evitar que el mismo click la cierre de golpe y bloquee al jugador
         setTimeout(() => {
             window.isMovementBlocked = true;
         }, 100);
@@ -409,9 +403,16 @@ window.addEventListener('DOMContentLoaded', () => {
   let linternaEncendida = false;
   let bateria = 100;
 
+  // NUEVO: Eventos para rastrear al 100% si estamos en VR
   if (sceneEl) {
-    sceneEl.addEventListener('enter-vr', () => { if(vrSign) vrSign.setAttribute('visible', 'true'); });
-    sceneEl.addEventListener('exit-vr', () => { if(vrSign) vrSign.setAttribute('visible', 'false'); });
+    sceneEl.addEventListener('enter-vr', () => { 
+        window.isXRActive = true;
+        if(vrSign) vrSign.setAttribute('visible', 'true'); 
+    });
+    sceneEl.addEventListener('exit-vr', () => { 
+        window.isXRActive = false;
+        if(vrSign) vrSign.setAttribute('visible', 'false'); 
+    });
   }
 
   btnStart.addEventListener('click', () => {
@@ -424,9 +425,10 @@ window.addEventListener('DOMContentLoaded', () => {
     document.querySelector('a-scene').canvas.click();
   });
 
-  // NUEVO: Función para cerrar notas en VR en lugar de que se encienda la linterna
+  // Función para cerrar notas en VR
   function closeVRNote() {
-    if (window.isMovementBlocked && sceneEl && sceneEl.is('vr-mode')) {
+    // NUEVO: Usamos window.isXRActive
+    if (window.isMovementBlocked && window.isXRActive) {
       document.getElementById('vr-inspector-container').setAttribute('visible', 'false');
       setTimeout(() => { window.isMovementBlocked = false; }, 100);
       return true; 
@@ -443,7 +445,8 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     }
     
-    const isVR = sceneEl.is('vr-mode');
+    // NUEVO: Decidimos qué linterna encender según nuestro rastreador
+    const isVR = window.isXRActive;
     const linternaPC = document.querySelector('#linterna-pc');
     const linternaVR = document.querySelector('#linterna-vr');
 
@@ -463,15 +466,14 @@ window.addEventListener('DOMContentLoaded', () => {
   const rightController = document.getElementById('right-controller');
   const leftController = document.getElementById('left-controller');
 
-  // Mando Derecho: A y B para la linterna (Gatillo libre para agarrar).
-  // NUEVO: Usamos if(!closeVRNote()) para que si hay una nota abierta, la cierre y no encienda la luz
+  // Mando Derecho
   if (rightController) {
     rightController.addEventListener('abuttondown', () => { if(!closeVRNote()) toggleLinterna(false); });
     rightController.addEventListener('bbuttondown', () => { if(!closeVRNote()) toggleLinterna(false); });
     rightController.addEventListener('triggerdown', () => { closeVRNote(); });
   }
 
-  // Mando Izquierdo: X para la linterna, Y para el reloj (HUD). (Gatillo libre para agarrar).
+  // Mando Izquierdo
   if (leftController) {
     leftController.addEventListener('xbuttondown', () => { if(!closeVRNote()) toggleLinterna(false); });
     
@@ -516,7 +518,7 @@ window.addEventListener('DOMContentLoaded', () => {
       vrBat.setAttribute('color', bateria <= 20 ? '#ff3333' : '#00ffcc');
     }
 
-    if (bateria <= 20 && tickCounter % 10 === 0 && document.querySelector('a-scene').is('vr-mode')) {
+    if (bateria <= 20 && tickCounter % 10 === 0 && window.isXRActive) {
       if (leftController) leftController.emit('low-battery-pulse');
       if (rightController) rightController.emit('low-battery-pulse');
     }

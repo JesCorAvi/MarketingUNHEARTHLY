@@ -11,7 +11,9 @@
 <body>
   <a-scene physics="driver: local; friction: 0.0; restitution: 0.0">
 
-    <a-assets timeout="10000"></a-assets>
+    <a-assets timeout="10000">
+      <a-asset-item id="pelchero-glb" src="modelos/pelchero.glb"></a-asset-item>
+    </a-assets>
 
     <div class="crt-overlay"></div>
     
@@ -149,8 +151,11 @@
 
     <a-entity id="enemy" geometry="primitive: sphere; radius: 0.6" material="visible: false" position="-8 0.6 -20" 
               dynamic-body="mass: 100; shape: sphere; sphereRadius: 0.4; linearDamping: 0.9" stalker-ai="force: 1800">
-      <a-cylinder radius="0.25" height="1.8" position="0 0.3 0" color="#0a0a0a"></a-cylinder>
-      <a-sphere radius="0.3" position="0 1.2 0" color="#ff0000" material="emissive: #ff0000; emissiveIntensity: 1"></a-sphere>
+      <a-entity gltf-model="#pelchero-glb" 
+                position="0 -0.6 0" 
+                scale="1 1 1"
+                brillo-sombrero="intensidad: 0.35">
+      </a-entity>
     </a-entity>
 
     <a-box class="scrap" recolectable position="22 0.5 22" color="#00ffcc" scale="0.4 0.4 0.4"></a-box>

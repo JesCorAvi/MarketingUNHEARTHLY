@@ -3,7 +3,7 @@
 window.isXRActive = false;
 
 // ==========================================
-// NUEVO: CONTROLADOR DE FIN DE JUEGO
+// CONTROLADOR DE FIN DE JUEGO
 // ==========================================
 window.endGame = function(isVictory) {
   // Bloquear al jugador (y al mímico)
@@ -52,6 +52,39 @@ conceptImages.forEach(src => {
 function resolveImageSrc(src) {
   return src || null;
 }
+
+// ==========================================
+// COMPONENTE: BRILLO DEL SOMBRERO
+// ==========================================
+AFRAME.registerComponent('brillo-sombrero', {
+  schema: {
+    intensidad: { type: 'number', default: 0.3 } // Ajusta este valor si quieres más o menos brillo
+  },
+  init: function () {
+    this.el.addEventListener('model-loaded', () => {
+      const mesh = this.el.getObject3D('mesh');
+      if (!mesh) return;
+
+      mesh.traverse((node) => {
+        // Busca cualquier malla que contenga "sombrero" en su nombre (ignorando mayúsculas/minúsculas)
+        if (node.isMesh && node.name.toLowerCase().includes('sombrero')) {
+          
+          // Si el material tiene una textura (mapa de colores), la usamos también para emitir luz
+          if (node.material.map) {
+            node.material.emissiveMap = node.material.map;
+            node.material.emissive.setHex(0xffffff); // Blanco para no teñir la textura
+          } else {
+            // Si son colores sólidos, usamos su color original como color emisivo
+            node.material.emissive.copy(node.material.color);
+          }
+          
+          // Aplicamos la intensidad del brillo
+          node.material.emissiveIntensity = this.data.intensidad;
+        }
+      });
+    });
+  }
+});
 
 // ==========================================
 // COMPONENTES VR: MOVIMIENTO Y ROTACIÓN
@@ -396,7 +429,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const sceneEl = document.querySelector('a-scene');
   const vrSign = document.getElementById('vr-controls-sign');
   
-  const pcCrosshair = document.getElementById('pc-crosshair'); // <--- AQUI RECOGEMOS EL CROSSHAIR
+  const pcCrosshair = document.getElementById('pc-crosshair');
   
   const btnCloseInspector = document.getElementById('btn-close-inspector');
   btnCloseInspector.addEventListener('click', () => {
@@ -413,14 +446,12 @@ window.addEventListener('DOMContentLoaded', () => {
         window.isXRActive = true;
         if(vrSign) vrSign.setAttribute('visible', 'true'); 
         
-        // APAGAMOS EL CROSSHAIR EN VR
         if(pcCrosshair) pcCrosshair.setAttribute('visible', 'false'); 
     });
     sceneEl.addEventListener('exit-vr', () => { 
         window.isXRActive = false;
         if(vrSign) vrSign.setAttribute('visible', 'false'); 
         
-        // ENCENDEMOS EL CROSSHAIR EN PC
         if(pcCrosshair) pcCrosshair.setAttribute('visible', 'true'); 
     });
   }

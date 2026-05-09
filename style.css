@@ -82,7 +82,7 @@ body {
 }
 #btn-close-inspector:hover { background: #fff; box-shadow: 0 0 20px #fff; }
 
-/* NUEVO: PANTALLAS DE FIN DE JUEGO (PC) */
+/* PANTALLAS DE FIN DE JUEGO (PC) */
 .end-screen {
   position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
   background: rgba(0, 0, 0, 0.92); z-index: 3500; display: none;

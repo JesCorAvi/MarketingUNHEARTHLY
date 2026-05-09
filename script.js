@@ -321,7 +321,6 @@ AFRAME.registerComponent('stalker-ai', {
     const distFinal = Math.sqrt(Math.pow(camPos.x - enemyPos.x, 2) + Math.pow(camPos.z - enemyPos.z, 2));
     if (distFinal < 1.2 && !this.isGameOver) {
       this.isGameOver = true;
-      // NUEVO: Llamamos a la pantalla de Muerte (false)
       window.endGame(false);
     }
   }
@@ -335,7 +334,6 @@ const targetLoot = 5;
 AFRAME.registerComponent('recolectable', {
   init: function () {
     this.el.addEventListener('click', () => {
-      // Si el juego ya acabó, no sumar más puntos por bug
       if (window.isMovementBlocked && document.getElementById('victory-screen').style.display !== 'none') return;
 
       lootCollected++;
@@ -347,7 +345,6 @@ AFRAME.registerComponent('recolectable', {
       this.el.parentNode.removeChild(this.el); 
       
       if (lootCollected >= targetLoot) {
-        // NUEVO: Llamamos a la pantalla de Victoria (true)
         window.endGame(true);
       }
     });
@@ -399,6 +396,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const sceneEl = document.querySelector('a-scene');
   const vrSign = document.getElementById('vr-controls-sign');
   
+  const pcCrosshair = document.getElementById('pc-crosshair'); // <--- AQUI RECOGEMOS EL CROSSHAIR
+  
   const btnCloseInspector = document.getElementById('btn-close-inspector');
   btnCloseInspector.addEventListener('click', () => {
     document.getElementById('image-inspector').style.display = 'none';
@@ -413,10 +412,16 @@ window.addEventListener('DOMContentLoaded', () => {
     sceneEl.addEventListener('enter-vr', () => { 
         window.isXRActive = true;
         if(vrSign) vrSign.setAttribute('visible', 'true'); 
+        
+        // APAGAMOS EL CROSSHAIR EN VR
+        if(pcCrosshair) pcCrosshair.setAttribute('visible', 'false'); 
     });
     sceneEl.addEventListener('exit-vr', () => { 
         window.isXRActive = false;
         if(vrSign) vrSign.setAttribute('visible', 'false'); 
+        
+        // ENCENDEMOS EL CROSSHAIR EN PC
+        if(pcCrosshair) pcCrosshair.setAttribute('visible', 'true'); 
     });
   }
 
@@ -432,7 +437,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
   function closeVRNote() {
     if (window.isMovementBlocked && window.isXRActive) {
-      // Evitar cerrar el juego entero si se aprieta un botón en la pantalla de victoria/muerte
       const vicScreen = document.getElementById('vr-victory-screen').getAttribute('visible');
       const deathScreen = document.getElementById('vr-death-screen').getAttribute('visible');
       if (vicScreen || deathScreen) return false;

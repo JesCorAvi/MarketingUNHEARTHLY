@@ -9,7 +9,7 @@
   <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.min.js"></script>
 </head>
 <body>
-  <a-scene physics="driver: local; friction: 0.0; restitution: 0.0" vr-mode-ui="enabled: false">
+  <a-scene physics="driver: local; friction: 0.0; restitution: 0.0">
 
     <a-assets timeout="10000"></a-assets>
 
@@ -20,7 +20,7 @@
       <div class="instructions">
         <p>ESTADO DE LA MISIÓN: RECUPERAR ACTIVOS E INVESTIGAR DOCUMENTOS.</p>
         <p>[PC]: Ratón para apuntar | Clic para inspeccionar | W A S D para moverte | [E] Linterna.</p>
-        <p class="warning">ADVERTENCIA: EL "PERCHERO MÍMICO" TE ACECHA. SÓLO SE DETIENE SI LO MIRAS FIJAMENTE. APAGA LA LINTERNA PARA RECARGARLA.</p>
+        <p class="warning">ADVERTENCIA: EL "PERCHERO MÍMICO" TE ACECHA. SÓLO SE DETIENE SI LO MIRAS FIJAMENTE.</p>
       </div>
       <button id="btn-start">INICIAR INMERSIÓN</button>
     </div>
@@ -43,26 +43,49 @@
 
     <a-entity id="rig" geometry="primitive: sphere; radius: 0.6" material="visible: false" position="0 0.6 22" 
               dynamic-body="mass: 70; shape: sphere; sphereRadius: 0.4; linearDamping: 0.9" physics-movement="force: 1200">
+      
       <a-camera id="player-camera" position="0 1.0 0" look-controls="pointerLockEnabled: true" wasd-controls-enabled="false">
         <a-entity id="linterna" light="type: spot; color: #e6f2ff; intensity: 0; angle: 40; penumbra: 0.3; distance: 25; decay: 1.5"></a-entity>
+        
         <a-entity cursor="rayOrigin: entity; fuse: false" position="0 0 -1"
                   raycaster="objects: .scrap, .note; far: 2"
                   geometry="primitive: ring; radiusInner: 0.008; radiusOuter: 0.015"
                   material="color: #00ffcc; shader: flat; opacity: 0.7"></a-entity>
       </a-camera>
+
+      <a-entity id="left-controller" oculus-touch-controls="hand: left" haptics="events: low-battery-pulse; dur: 300; force: 0.6">
+        <a-entity id="vr-wrist-hud" position="0.05 0.05 -0.05" rotation="-45 45 0">
+          <a-plane width="0.12" height="0.06" color="#000f0a" material="opacity: 0.9"></a-plane>
+          <a-text id="vr-loot-count" value="OBJ: 0/5" position="-0.05 0.015 0.001" scale="0.1 0.1 0.1" color="#00ffcc"></a-text>
+          <a-text id="vr-battery-level" value="BAT: 100%" position="-0.05 -0.015 0.001" scale="0.1 0.1 0.1" color="#00ffcc"></a-text>
+        </a-entity>
+
+        <a-entity id="vr-inspector-container" visible="false" position="0.1 0.15 -0.1" rotation="-30 45 0">
+          <a-image id="vr-inspector" width="0.45" height="0.6"></a-image>
+          <a-text value="GATILLO PARA GUARDAR" position="0 -0.35 0" align="center" scale="0.12 0.12 0.12" color="#ff3333"></a-text>
+        </a-entity>
+      </a-entity>
+
+      <a-entity id="right-controller" laser-controls="hand: right" raycaster="objects: .scrap, .note; far: 3" line="color: #00ffcc; opacity: 0.5" haptics="events: low-battery-pulse; dur: 300; force: 0.6"></a-entity>
+    </a-entity>
+
+    <a-entity id="vr-controls-sign" position="0 2 20.5" visible="false">
+      <a-plane width="3" height="1.8" color="#000f0a" material="opacity: 0.9"></a-plane>
+      <a-text value="PROTOCOLO VR ACTIVO" position="0 0.6 0.05" align="center" width="4" color="#ff3333"></a-text>
+      <a-text value="IZQUIERDA: MOVERSE (Joystick)\nDERECHA: INTERACTUAR (Gatillo)\nLINTERNA: BOTONES A/B/X/Y\nGUARDAR NOTA: GATILLO" 
+              position="0 -0.1 0.05" align="center" width="3" color="#00ffcc"></a-text>
+      <a-text value="EL MIMICO SOLO SE DETIENE SI LO MIRAS." position="0 -0.6 0.05" align="center" width="2.5" color="#ff3333"></a-text>
     </a-entity>
 
     <a-sky color="#020202"></a-sky>
     <a-box static-body position="0 -0.5 0" width="50" height="1" depth="50" color="#0a0a0a"></a-box>
     <a-box static-body position="0 5 0" width="50" height="1" depth="50" color="#000000"></a-box>
 
-    <!-- Paredes exteriores -->
     <a-box class="wall" static-body position="0 2.5 -25" width="52" height="6" depth="2" color="#111"></a-box>
     <a-box class="wall" static-body position="0 2.5 25" width="52" height="6" depth="2" color="#111"></a-box>
     <a-box class="wall" static-body position="-25 2.5 0" width="2" height="6" depth="52" color="#111"></a-box>
     <a-box class="wall" static-body position="25 2.5 0" width="2" height="6" depth="52" color="#111"></a-box>
 
-    <!-- Laberinto interior -->
     <a-box class="wall" static-body position="0 2.5 15" width="2" height="6" depth="10" color="#141414"></a-box>
     <a-box class="wall" static-body position="-16 2.5 10" width="18" height="6" depth="2" color="#141414"></a-box>
     <a-box class="wall" static-body position="16 2.5 10" width="18" height="6" depth="2" color="#141414"></a-box>
@@ -85,41 +108,27 @@
       <a-sphere radius="0.3" position="0 1.2 0" color="#ff0000" material="emissive: #ff0000; emissiveIntensity: 1"></a-sphere>
     </a-entity>
 
-    <!-- Scrap (5 objetos) -->
     <a-box class="scrap" recolectable position="22 0.5 22" color="#00ffcc" scale="0.4 0.4 0.4"></a-box>
     <a-cylinder class="scrap" recolectable position="-22 0.5 22" radius="0.2" height="0.5" color="#00ffcc"></a-cylinder>
     <a-sphere class="scrap" recolectable position="-22 0.5 -22" radius="0.25" color="#00ffcc"></a-sphere>
     <a-tetrahedron class="scrap" recolectable position="22 0.5 -22" radius="0.3" color="#00ffcc"></a-tetrahedron>
     <a-dodecahedron class="scrap" recolectable position="0 0.5 0" radius="0.3" color="#00ffcc"></a-dodecahedron>
 
-    <!-- Notas: pegadas a paredes (y=1.5, desplazadas 0.05 del plano) o en el suelo (y=0.02) -->
-
-<a-box class="note" nota-interactiva="img: concepts/2.png" position="0 1.5 23.95" rotation="0 180 0" depth="0.05" height="0.8" width="0.6" material="color: #fff"></a-box>
-    
+    <a-box class="note" nota-interactiva="img: concepts/2.png" position="0 1.5 23.95" rotation="0 180 0" depth="0.05" height="0.8" width="0.6" material="color: #fff"></a-box>
     <a-box class="note" nota-interactiva="img: concepts/6.png" position="-8 0.05 12" rotation="0 45 0" depth="0.6" height="0.05" width="0.8"></a-box>
-    
     <a-box class="note" nota-interactiva="img: concepts/8.png" position="1.05 1.5 18" rotation="0 90 0" depth="0.05" height="0.8" width="0.6"></a-box>
-    
     <a-box class="note" nota-interactiva="img: concepts/10.png" position="17 1.5 -8.95" rotation="0 0 0" depth="0.05" height="0.8" width="0.6"></a-box>
-    
     <a-box class="note" nota-interactiva="img: concepts/11.png" position="-22 0.05 -18" rotation="0 -20 0" depth="0.6" height="0.05" width="0.8"></a-box>
-    
     <a-box class="note" nota-interactiva="img: concepts/1.png" position="-11.05 1.5 6" rotation="0 -90 0" depth="0.05" height="0.8" width="0.6"></a-box>
-    
     <a-box class="note" nota-interactiva="img: concepts/3.png" position="11.05 1.5 6" rotation="0 90 0" depth="0.05" height="0.8" width="0.6"></a-box>
-    
     <a-box class="note" nota-interactiva="img: concepts/4.png" position="-1.05 1.5 -18" rotation="0 -90 0" depth="0.05" height="0.8" width="0.6"></a-box>
-    
     <a-box class="note" nota-interactiva="img: concepts/5.png" position="-16.95 1.5 0" rotation="0 90 0" depth="0.05" height="0.8" width="0.6"></a-box>
-    
     <a-box class="note" nota-interactiva="img: concepts/7.png" position="8 1.5 -23.95" rotation="0 0 0" depth="0.05" height="0.8" width="0.6"></a-box>
-    
     <a-box class="note" nota-interactiva="img: concepts/9.jpg" position="23.95 1.5 -15" rotation="0 -90 0" depth="0.05" height="0.8" width="0.6"></a-box>
   </a-scene>
 
-  <!-- Inspector FUERA de a-scene para que el canvas WebGL no lo tape -->
   <div id="image-inspector">
-    <img id="inspector-img" src="" alt="Documento clasificado">
+    <img id="inspector-img" src="" alt="Documento">
     <button id="btn-close-inspector">CERRAR ARCHIVO</button>
   </div>
 

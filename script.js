@@ -10,8 +10,6 @@ const conceptImages = [
   'concepts/9.jpg','concepts/10.png','concepts/11.png'
 ];
 
-// Precargamos todas las imágenes con JS nativo nada más cargar el script.
-// Esto fuerza al navegador a cachearlas antes de que el jugador interactúe.
 conceptImages.forEach(src => {
   const img = new Image();
   img.onload = () => { imageCache[src] = img.src; };
@@ -19,19 +17,19 @@ conceptImages.forEach(src => {
   img.src = src;
 });
 
-// Función auxiliar: ahora el schema ya recibe la ruta directa (ej: 'concepts/3.png')
 function resolveImageSrc(src) {
   return src || null;
 }
 
 // ==========================================
-// 1. MOVIMIENTO DEL JUGADOR
+// 1. MOVIMIENTO DEL JUGADOR (PC + VR)
 // ==========================================
 AFRAME.registerComponent('physics-movement', {
   schema: { force: { type: 'number', default: 1200 } },
   init: function () {
     this.keys = { w: false, a: false, s: false, d: false };
     this.touchX = 0; this.touchZ = 0;
+    this.thumbstickX = 0; this.thumbstickZ = 0; 
 
     this.el.addEventListener('body-loaded', () => {
       this.el.body.fixedRotation = true;
@@ -56,21 +54,38 @@ AFRAME.registerComponent('physics-movement', {
     };
     setupBtn('btn-up', 0, -1); setupBtn('btn-down', 0, 1);
     setupBtn('btn-left', -1, 0); setupBtn('btn-right', 1, 0);
+
+    // Joystick VR
+    const leftHand = document.getElementById('left-controller');
+    if (leftHand) {
+      leftHand.addEventListener('axismove', (e) => {
+        let x = e.detail.axis[0];
+        let y = e.detail.axis[1];
+        this.thumbstickX = Math.abs(x) > 0.1 ? x : 0;
+        this.thumbstickZ = Math.abs(y) > 0.1 ? y : 0;
+      });
+    }
   },
   
   tick: function () {
     if (!this.el.body) return; 
 
-    // Si el movimiento está bloqueado (inspector abierto), detener al jugador y salir
     if (window.isMovementBlocked) {
       this.el.body.velocity.set(0, 0, 0);
       return; 
     }
 
-    let moveX = this.touchX; let moveZ = this.touchZ;
+    let moveX = this.touchX + this.thumbstickX; 
+    let moveZ = this.touchZ + this.thumbstickZ;
     if (this.keys.w) moveZ -= 1; if (this.keys.s) moveZ += 1;
     if (this.keys.a) moveX -= 1; if (this.keys.d) moveX += 1;
-    if (moveX === 0 && moveZ === 0) return;
+    
+    if (moveX !== 0 || moveZ !== 0) {
+       const length = Math.sqrt(moveX*moveX + moveZ*moveZ);
+       if(length > 1) { moveX /= length; moveZ /= length; }
+    } else {
+       return; 
+    }
 
     const cam = document.querySelector('#player-camera').getObject3D('camera');
     const forward = new THREE.Vector3();
@@ -101,11 +116,9 @@ AFRAME.registerComponent('stalker-ai', {
     this.teleportTimer = 0; 
     this.stunTimer = 0; 
 
-    // Control de los 10 segundos de gracia iniciales
     this.initialGracePeriod = true;
     this.graceTimer = 0;
 
-    // Puntos de spawn 100% seguros basados en la geometría de tu laberinto
     this.safeSpawns = [
       {x: 22, z: 22}, {x: -22, z: 22}, {x: 22, z: -22}, {x: -22, z: -22},
       {x: 0, z: 0}, {x: 14, z: 0}, {x: -14, z: 0}, {x: 0, z: 8}, {x: 0, z: -8},
@@ -145,35 +158,26 @@ AFRAME.registerComponent('stalker-ai', {
   tick: function (time, timeDelta) {
     if (!this.el.body || !this.playerBody.body || !timeDelta || this.isGameOver) return;
 
-    // Si el inspector está abierto, el Mímico se congela por completo
     if (window.isMovementBlocked) {
       this.el.body.velocity.set(0, 0, 0);
       this.el.body.force.set(0, 0, 0);
       return; 
     }
 
-    // Lógica del tiempo de gracia inicial (10 segundos)
     if (this.initialGracePeriod) {
       this.graceTimer += timeDelta;
       this.el.body.velocity.set(0, 0, 0);
       this.el.body.force.set(0, 0, 0);
 
-      // Cuando pasan 10 segundos
       if (this.graceTimer > 10000) {
         this.initialGracePeriod = false;
-        
-        // Seleccionamos un punto de spawn seguro para evitar empotramientos
         const randomSpawn = this.safeSpawns[Math.floor(Math.random() * this.safeSpawns.length)];
-        
-        // Teletransportar al Mímico y reiniciar sus contadores normales
         this.el.body.position.set(randomSpawn.x, this.el.body.position.y, randomSpawn.z);
         this.el.body.velocity.set(0, 0, 0);
         this.teleportTimer = 0; 
       }
       return; 
     }
-
-    // --- LÓGICA NORMAL DESPUÉS DE LOS 10 SEGUNDOS ---
 
     const camera3D = this.cameraEl.getObject3D('camera');
     const camPos = new THREE.Vector3();
@@ -211,7 +215,6 @@ AFRAME.registerComponent('stalker-ai', {
       for (let i = 0; i < intersects.length; i++) {
         let obj = intersects[i].object;
         if (obj.el && (obj.el.id === 'rig' || obj.el.id === 'player-camera' || obj.el === this.el)) continue;
-        
         if (intersects[i].distance < 7.0) {
             distanciaTeleport = Math.max(1.5, intersects[i].distance - 1.5); 
         }
@@ -219,8 +222,6 @@ AFRAME.registerComponent('stalker-ai', {
       }
       
       const tpPos = camPos.clone().add(behindDir.multiplyScalar(distanciaTeleport));
-      
-      // LÍMITES CORREGIDOS (-23 a 23) PARA EL TAMAÑO REAL DEL LABERINTO
       tpPos.x = Math.max(-23, Math.min(23, tpPos.x));
       tpPos.z = Math.max(-23, Math.min(23, tpPos.z));
       
@@ -235,7 +236,6 @@ AFRAME.registerComponent('stalker-ai', {
     } else {
       const moveDir = new THREE.Vector3().subVectors(camPos, enemyPos);
       moveDir.y = 0; moveDir.normalize();
-      
       this.el.body.wakeUp(); 
       this.el.body.force.x += moveDir.x * this.data.force;
       this.el.body.force.z += moveDir.z * this.data.force;
@@ -263,6 +263,11 @@ AFRAME.registerComponent('recolectable', {
     this.el.addEventListener('click', () => {
       lootCollected++;
       document.querySelector('#loot-count').innerText = lootCollected;
+      
+      // Actualizar el reloj VR
+      const vrLoot = document.querySelector('#vr-loot-count');
+      if (vrLoot) vrLoot.setAttribute('value', 'OBJ: ' + lootCollected + '/5');
+
       this.el.parentNode.removeChild(this.el); 
       if (lootCollected >= targetLoot) {
         setTimeout(() => alert("EXTRACCIÓN APROBADA. HAS SOBREVIVIDO."), 100);
@@ -271,34 +276,35 @@ AFRAME.registerComponent('recolectable', {
   }
 });
 
-
 // ==========================================
-// 4. LÓGICA DE NOTAS (INSPECTOR DE IMÁGENES)
+// 4. LÓGICA DE NOTAS (INSPECTOR VR/PC)
 // ==========================================
 AFRAME.registerComponent('nota-interactiva', {
   schema: { img: {type: 'string'} },
   init: function () {
     this.el.addEventListener('click', () => {
       const src = resolveImageSrc(this.data.img);
-      if (!src) { console.error("No se encontró la imagen con ID: " + this.data.img); return; }
+      if (!src) return;
 
-      // 1. Primero liberar el Pointer Lock — el navegador necesita procesar
-      //    este evento antes de poder repintar el inspector correctamente.
-      document.exitPointerLock();
-
-      // 2. Esperamos dos frames (~32ms) para que el Pointer Lock se libere
-      //    del todo y el motor de render tenga un ciclo limpio para pintar.
-      setTimeout(() => {
-        const inspector = document.getElementById('image-inspector');
-        const imgEl = document.getElementById('inspector-img');
-
-        imgEl.src = '';           // reset para forzar onload incluso si es la misma imagen
-        imgEl.src = src;
-        inspector.style.display = 'flex';
+      const sceneEl = document.querySelector('a-scene');
+      
+      if (sceneEl.is('vr-mode')) {
+        const vrInspectorContainer = document.getElementById('vr-inspector-container');
+        const vrInspector = document.getElementById('vr-inspector');
         
-        // Bloquear el movimiento y al mímico mientras el inspector está visible
+        vrInspector.setAttribute('src', src);
+        vrInspectorContainer.setAttribute('visible', 'true');
         window.isMovementBlocked = true;
-      }, 32);
+      } else {
+        document.exitPointerLock();
+        setTimeout(() => {
+          const inspector = document.getElementById('image-inspector');
+          const imgEl = document.getElementById('inspector-img');
+          imgEl.src = src;
+          inspector.style.display = 'flex';
+          window.isMovementBlocked = true;
+        }, 32);
+      }
     });
   }
 });
@@ -315,14 +321,10 @@ window.addEventListener('DOMContentLoaded', () => {
   const linterna = document.querySelector('#linterna');
   const batteryLevel = document.querySelector('#battery-level');
   
-  // Botón para cerrar el inspector de imágenes
   const btnCloseInspector = document.getElementById('btn-close-inspector');
   btnCloseInspector.addEventListener('click', () => {
     document.getElementById('image-inspector').style.display = 'none';
-    // Volver a capturar el ratón para seguir jugando
     document.querySelector('a-scene').canvas.requestPointerLock();
-    
-    // Desbloquear el movimiento y reanudar al mímico
     window.isMovementBlocked = false;
   });
 
@@ -357,7 +359,43 @@ window.addEventListener('DOMContentLoaded', () => {
     if (event.key.toLowerCase() === 'e') toggleLinterna(false);
   });
 
+  // --- CONTROLES DE MANDOS VR ---
+  const rightController = document.getElementById('right-controller');
+  const leftController = document.getElementById('left-controller');
+
+  function handleVRAction() {
+    const sceneEl = document.querySelector('a-scene');
+    
+    // 1. Cerrar nota en la mano
+    if (window.isMovementBlocked && sceneEl.is('vr-mode')) {
+      document.getElementById('vr-inspector-container').setAttribute('visible', 'false');
+      window.isMovementBlocked = false;
+      return;
+    }
+    
+    // 2. Alternar linterna
+    toggleLinterna(false);
+  }
+
+  // Todos los botones/gatillos para guardar nota o encender luz
+  if (rightController) {
+    rightController.addEventListener('abuttondown', handleVRAction);
+    rightController.addEventListener('bbuttondown', handleVRAction);
+    rightController.addEventListener('triggerdown', handleVRAction);
+  }
+
+  if (leftController) {
+    leftController.addEventListener('xbuttondown', handleVRAction);
+    leftController.addEventListener('ybuttondown', handleVRAction);
+    leftController.addEventListener('triggerdown', handleVRAction);
+  }
+
+  // Reloj de ticks para la vibración y batería
+  let tickCounter = 0;
+
   setInterval(() => {
+    tickCounter++;
+
     if (linternaEncendida) {
       bateria -= 1.5; 
       if (bateria <= 0) {
@@ -368,9 +406,24 @@ window.addEventListener('DOMContentLoaded', () => {
       bateria += 1.0; 
       if (bateria > 100) bateria = 100;
     }
+    
     batteryLevel.innerText = Math.floor(bateria) + "%";
+    
+    // Actualizar reloj VR
+    const vrBat = document.querySelector('#vr-battery-level');
+    if (vrBat) {
+      vrBat.setAttribute('value', 'BAT: ' + Math.floor(bateria) + '%');
+      vrBat.setAttribute('color', bateria <= 20 ? '#ff3333' : '#00ffcc');
+    }
+
     if (bateria <= 20) {
       batteryLevel.style.color = "#ff3333";
+      
+      // VIBRACIÓN HÁPTICA: "latido" cada 2 segundos
+      if (tickCounter % 10 === 0 && document.querySelector('a-scene').is('vr-mode')) {
+        if (leftController) leftController.emit('low-battery-pulse');
+        if (rightController) rightController.emit('low-battery-pulse');
+      }
     } else {
       batteryLevel.style.color = "#00ffcc";
     }

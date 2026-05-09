@@ -53,10 +53,6 @@
                   geometry="primitive: ring; radiusInner: 0.008; radiusOuter: 0.015"
                   material="color: #00ffcc; shader: flat; opacity: 0.7"></a-entity>
 
-        <a-entity id="vr-inspector-container" visible="false" position="0 0 -0.8">
-          <a-image id="vr-inspector" width="0.6" height="0.8" material="shader: flat; depthTest: false"></a-image>
-          <a-text value="CUALQUIER BOTON O GATILLO PARA GUARDAR" position="0 -0.45 0" align="center" scale="0.15 0.15 0.15" color="#ff3333" material="depthTest: false"></a-text>
-        </a-entity>
       </a-camera>
 
       <a-entity id="left-controller" 
@@ -66,11 +62,18 @@
                 raycaster="objects: .scrap, .note; far: 3" 
                 line="color: #00ffcc; opacity: 0.5" 
                 haptics="events: low-battery-pulse; dur: 300; force: 0.6">
+                
         <a-entity id="vr-wrist-hud" position="0 0.12 -0.05" rotation="-45 0 0" visible="false">
           <a-plane width="0.12" height="0.06" color="#000f0a" material="opacity: 0.9"></a-plane>
           <a-text id="vr-loot-count" value="OBJ: 0/5" position="-0.05 0.015 0.001" scale="0.1 0.1 0.1" color="#00ffcc"></a-text>
           <a-text id="vr-battery-level" value="BAT: 100%" position="-0.05 -0.015 0.001" scale="0.1 0.1 0.1" color="#00ffcc"></a-text>
         </a-entity>
+
+        <a-entity id="vr-inspector-container" visible="false" position="0 0.15 -0.08" rotation="-20 0 0">
+          <a-image id="vr-inspector" width="0.45" height="0.6" material="shader: flat; depthTest: false"></a-image>
+          <a-text value="CUALQUIER BOTON O GATILLO PARA GUARDAR" position="0 -0.35 0" align="center" scale="0.12 0.12 0.12" color="#ff3333" material="depthTest: false"></a-text>
+        </a-entity>
+
       </a-entity>
 
       <a-entity id="right-controller" 
@@ -89,7 +92,7 @@
     <a-entity id="vr-controls-sign" position="0 2 20.5" visible="false">
       <a-plane width="3" height="1.8" color="#000f0a" material="opacity: 0.9"></a-plane>
       <a-text value="PROTOCOLO VR ACTIVO" position="0 0.6 0.05" align="center" width="4" color="#ff3333"></a-text>
-      <a-text value="IZQ: MOVERSE | DER: GIRAR CAMARA\nAMBAS MANOS: INTERACTUAR\nLINTERNA: BOTONES A/B/X\nINFO HUD (Bateria y Obj): BOTON Y\nGUARDAR NOTA: CUALQUIER BOTON/GATILLO" 
+      <a-text value="IZQ: MOVERSE | DER: GIRAR CAMARA\nAMBAS MANOS: INTERACTUAR\nLINTERNA: BOTONES A/B/X\nINFO HUD: BOTON Y\nNOTAS: APARECEN EN TU MANO IZQUIERDA" 
               position="0 -0.1 0.05" align="center" width="3" color="#00ffcc"></a-text>
       <a-text value="EL MIMICO SOLO SE DETIENE SI LO MIRAS." position="0 -0.6 0.05" align="center" width="2.5" color="#ff3333"></a-text>
     </a-entity>

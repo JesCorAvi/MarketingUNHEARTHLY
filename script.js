@@ -447,15 +447,17 @@ window.addEventListener('DOMContentLoaded', () => {
     if (event.key.toLowerCase() === 'e') toggleLinterna(false);
   });
 
+  // --- CONTROLES DE MANDOS VR ---
   const rightController = document.getElementById('right-controller');
   const leftController = document.getElementById('left-controller');
 
+  // Mando Derecho: A y B para la linterna (Gatillo libre para agarrar).
   if (rightController) {
     rightController.addEventListener('abuttondown', () => toggleLinterna(false));
     rightController.addEventListener('bbuttondown', () => toggleLinterna(false));
-    rightController.addEventListener('triggerdown', () => toggleLinterna(false));
   }
 
+  // Mando Izquierdo: X para la linterna, Y para el reloj (HUD). (Gatillo libre para agarrar).
   if (leftController) {
     leftController.addEventListener('xbuttondown', () => toggleLinterna(false));
     
@@ -466,8 +468,6 @@ window.addEventListener('DOMContentLoaded', () => {
         vrHud.setAttribute('visible', !isVisible);
       }
     });
-
-    leftController.addEventListener('triggerdown', () => toggleLinterna(false));
   }
 
   let tickCounter = 0;

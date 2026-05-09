@@ -429,7 +429,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
   if (leftController) {
     leftController.addEventListener('xbuttondown', () => toggleLinterna(false));
-    leftController.addEventListener('ybuttondown', () => toggleLinterna(false));
+    
+    // NUEVA LÓGICA: El botón Y ahora sirve como Toggle para mostrar/ocultar el panel de información
+    leftController.addEventListener('ybuttondown', () => {
+      const vrHud = document.getElementById('vr-wrist-hud');
+      if (vrHud) {
+        const isVisible = vrHud.getAttribute('visible');
+        vrHud.setAttribute('visible', !isVisible);
+      }
+    });
+
     leftController.addEventListener('triggerdown', () => toggleLinterna(false));
   }
   // ---------------------------------

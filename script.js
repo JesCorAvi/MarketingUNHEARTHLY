@@ -995,7 +995,15 @@ function initMobileControls() {
   let tapStartX   = 0;
   let tapStartY   = 0;
 
+  // Elementos de UI que deben recibir sus propios toques aunque el look-zone los cubra
+  const UI_SELECTORS = '#btn-linterna, #btn-close-inspector, #victory-screen, #death-screen';
+
   lookZone.addEventListener('touchstart', (e) => {
+    // Si el toque cae sobre un botón de UI, no lo capturamos
+    const t0 = e.changedTouches[0];
+    const topEl = document.elementFromPoint(t0.clientX, t0.clientY);
+    if (topEl && topEl.closest(UI_SELECTORS)) return;
+
     e.preventDefault();
     e.stopPropagation();
     if (lookTouchId !== null) return;

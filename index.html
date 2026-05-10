@@ -7,9 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.min.js"></script>
-  
   <script src="https://cdn.jsdelivr.net/npm/aframe-outline-component@1.1.2/dist/aframe-outline-component.min.js"></script>
-
 </head>
 <body>
   <div id="loading-screen">
@@ -35,6 +33,9 @@
       <audio id="snd-papel" src="sonidos/papelwav.wav" preload="auto"></audio>
       <audio id="snd-teleport" src="sonidos/teleport.mp3" preload="auto"></audio>
       <audio id="snd-win" src="sonidos/win.wav" preload="auto"></audio>
+      
+      <audio id="snd-paso-izq" src="sonidos/paso_izquierdo.wav" preload="auto"></audio>
+      <audio id="snd-paso-der" src="sonidos/paso_derecho.wav" preload="auto"></audio>
     </a-assets>
 
     <div class="crt-overlay"></div>
@@ -80,7 +81,7 @@
     </div>
 
     <a-entity id="rig" geometry="primitive: sphere; radius: 0.6" material="visible: false" position="0 0.6 22" 
-              dynamic-body="mass: 70; shape: sphere; sphereRadius: 0.4; linearDamping: 0.9" physics-movement="force: 1200">
+              dynamic-body="mass: 70; shape: sphere; sphereRadius: 0.4; linearDamping: 0.95" physics-movement="force: 1400">
       
       <a-camera id="player-camera" position="0 1.0 0" look-controls="pointerLockEnabled: true" wasd-controls-enabled="false">
         

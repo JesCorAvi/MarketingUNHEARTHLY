@@ -19,14 +19,12 @@ window.endGame = function(isVictory) {
   }
   
   if (window.isXRActive) {
-    // Modo VR
     if (isVictory) {
       document.getElementById('vr-victory-screen').setAttribute('visible', 'true');
     } else {
       document.getElementById('vr-death-screen').setAttribute('visible', 'true');
     }
   } else {
-    // Modo PC
     document.exitPointerLock();
     if (isVictory) {
       document.getElementById('victory-screen').style.display = 'flex';
@@ -141,7 +139,7 @@ AFRAME.registerComponent('brillo-sombrero', {
 });
 
 // ==========================================
-// AÑADIDO: AUTO-ESCALA PARA MODELOS 3D
+// AUTO-ESCALA PARA MODELOS 3D
 // ==========================================
 AFRAME.registerComponent('auto-escala', {
   schema: { maxSize: { type: 'number', default: 0.5 } },
@@ -165,7 +163,7 @@ AFRAME.registerComponent('auto-escala', {
 });
 
 // ==========================================
-// AÑADIDO: EFECTO PICKABLE (FLOTE Y ROTACIÓN)
+// EFECTO PICKABLE (FLOTE Y ROTACIÓN)
 // ==========================================
 AFRAME.registerComponent('efecto-pickable', {
   schema: {
@@ -186,7 +184,6 @@ AFRAME.registerComponent('efecto-pickable', {
     this.el.object3D.position.y = this.originalY + desfase;
   }
 });
-
 
 // ==========================================
 // COMPONENTES VR: MOVIMIENTO Y ROTACIÓN
@@ -243,14 +240,26 @@ AFRAME.registerComponent('vr-snap-turn', {
 });
 
 // ==========================================
-// 1. MOVIMIENTO DEL JUGADOR
+// 1. MOVIMIENTO DEL JUGADOR (TERROR CON PASOS ALTERNOS)
 // ==========================================
 AFRAME.registerComponent('physics-movement', {
-  schema: { force: { type: 'number', default: 1200 } },
+  schema: { 
+    force: { type: 'number', default: 1400 },
+    stepInterval: { type: 'number', default: 550 } 
+  },
   init: function () {
     this.keys = { w: false, a: false, s: false, d: false };
     this.touchX = 0; this.touchZ = 0;
     this.thumbstickX = 0; this.thumbstickZ = 0; 
+
+    this.stepTimer = this.data.stepInterval; 
+    this.soundLeft = document.getElementById('snd-paso-izq');
+    this.soundRight = document.getElementById('snd-paso-der');
+    
+    if(this.soundLeft) this.soundLeft.volume = 0.5;
+    if(this.soundRight) this.soundRight.volume = 0.5;
+    
+    this.isLeftStep = true; 
 
     this.el.addEventListener('body-loaded', () => {
       this.el.body.fixedRotation = true;
@@ -277,8 +286,8 @@ AFRAME.registerComponent('physics-movement', {
     setupBtn('btn-left', -1, 0); setupBtn('btn-right', 1, 0);
   },
   
-  tick: function () {
-    if (!this.el.body) return; 
+  tick: function (time, timeDelta) {
+    if (!this.el.body || !timeDelta) return; 
 
     if (window.isMovementBlocked) {
       this.el.body.velocity.set(0, 0, 0);
@@ -293,36 +302,71 @@ AFRAME.registerComponent('physics-movement', {
     if (this.keys.a) moveX -= 1; 
     if (this.keys.d) moveX += 1;
     
-    if (moveX !== 0 || moveZ !== 0) {
+    const isMoving = moveX !== 0 || moveZ !== 0;
+
+    if (isMoving) {
       const startScreen = document.getElementById('start-screen');
       if (startScreen && startScreen.style.display === 'none') {
         window.hasPlayerMoved = true;
       }
-    }
+      
+      this.stepTimer += timeDelta;
+      
+      if (this.stepTimer >= this.data.stepInterval) {
+        if (this.isLeftStep) {
+          if (this.soundLeft) {
+            this.soundLeft.currentTime = 0; 
+            this.soundLeft.play().catch(e => console.warn("Audio error:", e));
+          }
+        } else {
+          if (this.soundRight) {
+            this.soundRight.currentTime = 0; 
+            this.soundRight.play().catch(e => console.warn("Audio error:", e));
+          }
+        }
+        
+        this.isLeftStep = !this.isLeftStep; 
+        this.stepTimer = 0; 
+      }
 
-    if (moveX !== 0 || moveZ !== 0) {
-       const length = Math.sqrt(moveX*moveX + moveZ*moveZ);
-       if(length > 1) { 
-           moveX /= length; 
-           moveZ /= length; 
-       }
+      const currentSpeed = Math.sqrt(this.el.body.velocity.x ** 2 + this.el.body.velocity.z ** 2);
+      const maxSpeed = 3.5; 
+
+      if (currentSpeed < maxSpeed) {
+        const length = Math.sqrt(moveX*moveX + moveZ*moveZ);
+        if(length > 1) { 
+            moveX /= length; 
+            moveZ /= length; 
+        }
+
+        const cam = document.querySelector('#player-camera').getObject3D('camera');
+        const forward = new THREE.Vector3();
+        cam.getWorldDirection(forward);
+        forward.y = 0; forward.normalize();
+        const right = new THREE.Vector3(-forward.z, 0, forward.x);
+
+        const dir = new THREE.Vector3()
+          .addScaledVector(forward, -moveZ)
+          .addScaledVector(right, moveX)
+          .normalize();
+
+        this.el.body.force.x += dir.x * this.data.force;
+        this.el.body.force.z += dir.z * this.data.force;
+      }
+
     } else {
-       return; 
+      this.stepTimer = this.data.stepInterval; 
+      
+      if (this.el.body) {
+        this.el.body.velocity.x *= 0.85; 
+        this.el.body.velocity.z *= 0.85;
+        
+        if (Math.abs(this.el.body.velocity.x) < 0.1) this.el.body.velocity.x = 0;
+        if (Math.abs(this.el.body.velocity.z) < 0.1) this.el.body.velocity.z = 0;
+      }
+      
+      return; 
     }
-
-    const cam = document.querySelector('#player-camera').getObject3D('camera');
-    const forward = new THREE.Vector3();
-    cam.getWorldDirection(forward);
-    forward.y = 0; forward.normalize();
-    const right = new THREE.Vector3(-forward.z, 0, forward.x);
-
-    const dir = new THREE.Vector3()
-      .addScaledVector(forward, -moveZ)
-      .addScaledVector(right, moveX)
-      .normalize();
-
-    this.el.body.force.x += dir.x * this.data.force;
-    this.el.body.force.z += dir.z * this.data.force;
   }
 });
 
@@ -528,7 +572,7 @@ AFRAME.registerComponent('recolectable', {
     });
 
     this.el.addEventListener('click', () => {
-      if (this.collected) return; // Evitar clicks dobles rápidos
+      if (this.collected) return; 
       if (window.isMovementBlocked && document.getElementById('victory-screen').style.display !== 'none') return;
 
       const objSound = document.getElementById('snd-objeto');
@@ -578,7 +622,6 @@ AFRAME.registerComponent('nota-interactiva', {
       this.el.setAttribute('material', 'emissive', '#000000');
       this.el.setAttribute('material', 'emissiveIntensity', 0);
     });
-    // ------------------------
 
     if (src) {
       this.el.setAttribute('material', `src: ${src}; color: #dcd3b6; roughness: 1; metalness: 0`);
@@ -673,13 +716,11 @@ window.addEventListener('DOMContentLoaded', () => {
     sceneEl.addEventListener('enter-vr', () => { 
         window.isXRActive = true;
         if(vrSign) vrSign.setAttribute('visible', 'true'); 
-        
         if(pcCrosshair) pcCrosshair.setAttribute('visible', 'false'); 
     });
     sceneEl.addEventListener('exit-vr', () => { 
         window.isXRActive = false;
         if(vrSign) vrSign.setAttribute('visible', 'false'); 
-        
         if(pcCrosshair) pcCrosshair.setAttribute('visible', 'true'); 
     });
   }
@@ -750,7 +791,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
   if (leftController) {
     leftController.addEventListener('xbuttondown', () => { if(!closeVRNote()) toggleLinterna(false); });
-    
     leftController.addEventListener('ybuttondown', () => {
       if(!closeVRNote()) {
         const vrHud = document.getElementById('vr-wrist-hud');

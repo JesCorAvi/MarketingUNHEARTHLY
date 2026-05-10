@@ -9,8 +9,51 @@
   <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.min.js"></script>
   
   <script src="https://cdn.jsdelivr.net/npm/aframe-outline-component@1.1.2/dist/aframe-outline-component.min.js"></script>
+
+  <style>
+    #loading-screen {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background-color: #000;
+      z-index: 99999;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      color: #fff;
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .loading-title {
+      font-size: 3rem; margin-bottom: 20px;
+      text-shadow: 0 0 15px #00ffcc;
+      color: #00ffcc;
+      text-align: center;
+      letter-spacing: 2px;
+    }
+    .loading-bar-container {
+      width: 60%; max-width: 400px; height: 15px;
+      border: 2px solid #00ffcc;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #111;
+    }
+    #loading-progress {
+      width: 0%; height: 100%;
+      background-color: #00ffcc;
+      box-shadow: 0 0 10px #00ffcc;
+      transition: width 0.3s ease;
+    }
+    #loading-text {
+      margin-top: 15px; font-size: 1.2rem; color: #00ffcc;
+    }
+  </style>
 </head>
 <body>
+  <div id="loading-screen">
+    <h1 class="loading-title">INTO THE UNHEARTH</h1>
+    <div class="loading-bar-container">
+      <div id="loading-progress"></div>
+    </div>
+    <p id="loading-text">0%</p>
+  </div>
   <a-scene physics="driver: local; friction: 0.0; restitution: 0.0" aframe-outline>
 
     <a-assets timeout="10000">
@@ -21,7 +64,6 @@
       <a-asset-item id="frasco2-glb" src="modelos/frasco2.glb"></a-asset-item>
       <a-asset-item id="nintendo-glb" src="modelos/nintendo.glb"></a-asset-item>
 
-      <!-- Precarga de sonidos -->
       <audio id="snd-cueva" src="sonidos/cueva.wav" preload="auto"></audio>
       <audio id="snd-muerte" src="sonidos/muerte.wav" preload="auto"></audio>
       <audio id="snd-objeto" src="sonidos/objeto.wav" preload="auto"></audio>

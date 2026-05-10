@@ -1,3 +1,5 @@
+// script.js
+
 window.isXRActive = false;
 
 // ==========================================
@@ -44,7 +46,7 @@ window.endGame = function(isVictory) {
 };
 
 // ==========================================
-// 0. PRECARGA DE IMÁGENES
+// 0. PANTALLA DE CARGA Y PRECARGA
 // ==========================================
 const imageCache = {};
 const conceptImages = [
@@ -53,16 +55,72 @@ const conceptImages = [
   'concepts/9.jpg','concepts/10.png','concepts/11.png'
 ];
 
-conceptImages.forEach(src => {
-  const img = new Image();
-  img.onload = () => { imageCache[src] = img.src; };
-  img.onerror = () => console.warn('No se pudo precargar: ' + src);
-  img.src = src;
-});
-
 function resolveImageSrc(src) {
   return src || null;
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  const loadingScreen = document.getElementById('loading-screen');
+  const loadingProgress = document.getElementById('loading-progress');
+  const loadingText = document.getElementById('loading-text');
+
+  const aframeAssets = document.querySelectorAll('a-assets > *');
+  const totalItems = aframeAssets.length + conceptImages.length;
+  let loadedItems = 0;
+
+  function updateProgress() {
+    loadedItems++;
+    let percent = Math.floor((loadedItems / totalItems) * 100);
+    if (percent > 100) percent = 100;
+    
+    if (loadingProgress) loadingProgress.style.width = percent + '%';
+    if (loadingText) loadingText.innerText = percent + '%';
+
+    if (loadedItems >= totalItems) {
+      setTimeout(() => {
+        if (loadingScreen) {
+          loadingScreen.style.opacity = '0';
+          loadingScreen.style.transition = 'opacity 0.8s ease';
+          setTimeout(() => {
+              loadingScreen.style.display = 'none';
+          }, 800);
+        }
+      }, 500);
+    }
+  }
+
+  // 1. Cargar assets de A-Frame
+  if (aframeAssets.length > 0) {
+    aframeAssets.forEach(asset => {
+      if (asset.hasLoaded) {
+        updateProgress();
+      } else {
+        asset.addEventListener('loaded', updateProgress, { once: true });
+        asset.addEventListener('error', updateProgress, { once: true });
+      }
+    });
+  } else {
+    // Fallback si no encuentra
+    updateProgress();
+  }
+
+  // 2. Cargar imágenes de conceptos
+  conceptImages.forEach(src => {
+    const img = new Image();
+    img.onload = () => { imageCache[src] = img.src; updateProgress(); };
+    img.onerror = () => { console.warn('No se pudo precargar: ' + src); updateProgress(); };
+    img.src = src;
+  });
+  
+  // Fallback de seguridad: quitar pantalla de carga tras 15 segundos
+  setTimeout(() => {
+    if (loadingScreen && loadingScreen.style.display !== 'none') {
+      loadingScreen.style.opacity = '0';
+      loadingScreen.style.transition = 'opacity 0.8s ease';
+      setTimeout(() => loadingScreen.style.display = 'none', 800);
+    }
+  }, 15000); 
+});
 
 // ==========================================
 // COMPONENTE: BRILLO DEL SOMBRERO

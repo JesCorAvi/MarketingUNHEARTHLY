@@ -240,7 +240,7 @@ AFRAME.registerComponent('vr-snap-turn', {
 });
 
 // ==========================================
-// 1. MOVIMIENTO DEL JUGADOR (TERROR CON PASOS ALTERNOS)
+// 1. MOVIMIENTO DEL JUGADOR (TERROR + VARIACIONES DE PASO)
 // ==========================================
 AFRAME.registerComponent('physics-movement', {
   schema: { 
@@ -253,11 +253,18 @@ AFRAME.registerComponent('physics-movement', {
     this.thumbstickX = 0; this.thumbstickZ = 0; 
 
     this.stepTimer = this.data.stepInterval; 
-    this.soundLeft = document.getElementById('snd-paso-izq');
-    this.soundRight = document.getElementById('snd-paso-der');
     
-    if(this.soundLeft) this.soundLeft.volume = 0.5;
-    if(this.soundRight) this.soundRight.volume = 0.5;
+    this.soundsLeft = [
+      document.getElementById('snd-paso-izq'),
+      document.getElementById('snd-paso-izq2')
+    ];
+    this.soundsRight = [
+      document.getElementById('snd-paso-der'),
+      document.getElementById('snd-paso-der2')
+    ];
+    
+    this.soundsLeft.forEach(snd => { if (snd) snd.volume = 0.5; });
+    this.soundsRight.forEach(snd => { if (snd) snd.volume = 0.5; });
     
     this.isLeftStep = true; 
 
@@ -313,20 +320,24 @@ AFRAME.registerComponent('physics-movement', {
       this.stepTimer += timeDelta;
       
       if (this.stepTimer >= this.data.stepInterval) {
+        let soundToPlay = null;
+
         if (this.isLeftStep) {
-          if (this.soundLeft) {
-            this.soundLeft.currentTime = 0; 
-            this.soundLeft.play().catch(e => console.warn("Audio error:", e));
-          }
+          const randomIndex = Math.floor(Math.random() * this.soundsLeft.length);
+          soundToPlay = this.soundsLeft[randomIndex];
         } else {
-          if (this.soundRight) {
-            this.soundRight.currentTime = 0; 
-            this.soundRight.play().catch(e => console.warn("Audio error:", e));
-          }
+          const randomIndex = Math.floor(Math.random() * this.soundsRight.length);
+          soundToPlay = this.soundsRight[randomIndex];
+        }
+
+        if (soundToPlay) {
+          soundToPlay.currentTime = 0; 
+          soundToPlay.play().catch(e => {});
         }
         
         this.isLeftStep = !this.isLeftStep; 
-        this.stepTimer = 0; 
+        
+        this.stepTimer -= this.data.stepInterval; 
       }
 
       const currentSpeed = Math.sqrt(this.el.body.velocity.x ** 2 + this.el.body.velocity.z ** 2);
@@ -355,7 +366,7 @@ AFRAME.registerComponent('physics-movement', {
       }
 
     } else {
-      this.stepTimer = this.data.stepInterval; 
+      this.stepTimer = this.data.stepInterval - 200; 
       
       if (this.el.body) {
         this.el.body.velocity.x *= 0.85; 

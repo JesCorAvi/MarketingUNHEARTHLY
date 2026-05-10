@@ -100,7 +100,7 @@
     <a-entity id="rig" geometry="primitive: sphere; radius: 0.6" material="visible: false" position="0 0.6 22" 
               dynamic-body="mass: 70; shape: sphere; sphereRadius: 0.4; linearDamping: 0.95" physics-movement="force: 1400">
       
-      <a-camera id="player-camera" position="0 1.0 0" look-controls="pointerLockEnabled: true" wasd-controls-enabled="false">
+      <a-camera id="player-camera" position="0 1.0 0" look-controls="pointerLockEnabled: true; touchEnabled: false; magicWindowTrackingEnabled: false" wasd-controls-enabled="false">
         
         <a-entity id="linterna-pc" light="type: spot; color: #e6f2ff; intensity: 0; angle: 40; penumbra: 0.3; distance: 25; decay: 1.5"></a-entity>
         

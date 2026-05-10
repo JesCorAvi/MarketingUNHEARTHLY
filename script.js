@@ -1,16 +1,12 @@
-// script.js
-
 window.isXRActive = false;
-window.hasPlayerMoved = false; // <-- AÑADIDO: Control de primer movimiento
+window.hasPlayerMoved = false; 
 
 // ==========================================
 // CONTROLADOR DE FIN DE JUEGO
 // ==========================================
 window.endGame = function(isVictory) {
-  // Bloquear al jugador (y al mímico)
   window.isMovementBlocked = true;
 
-  // --- NUEVO: Pausar ambiente de cueva y reproducir final ---
   const ambientSound = document.getElementById('snd-cueva');
   if (ambientSound) ambientSound.pause();
 
@@ -21,7 +17,6 @@ window.endGame = function(isVictory) {
     const deathSnd = document.getElementById('snd-muerte');
     if (deathSnd) deathSnd.play();
   }
-  // ----------------------------------------------------------
   
   if (window.isXRActive) {
     // Modo VR
@@ -40,10 +35,9 @@ window.endGame = function(isVictory) {
     }
   }
   
-  // Reiniciar nivel a los 4 segundos
   setTimeout(() => {
     location.reload();
-  }, 4000);
+  }, 20000);
 };
 
 // ==========================================
@@ -90,7 +84,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 1. Cargar assets de A-Frame
   if (aframeAssets.length > 0) {
     aframeAssets.forEach(asset => {
       if (asset.hasLoaded) {
@@ -101,11 +94,9 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     });
   } else {
-    // Fallback si no encuentra
     updateProgress();
   }
 
-  // 2. Cargar imágenes de conceptos
   conceptImages.forEach(src => {
     const img = new Image();
     img.onload = () => { imageCache[src] = img.src; updateProgress(); };
@@ -113,7 +104,6 @@ window.addEventListener('DOMContentLoaded', () => {
     img.src = src;
   });
   
-  // Fallback de seguridad: quitar pantalla de carga tras 15 segundos
   setTimeout(() => {
     if (loadingScreen && loadingScreen.style.display !== 'none') {
       loadingScreen.style.opacity = '0';
@@ -179,23 +169,19 @@ AFRAME.registerComponent('auto-escala', {
 // ==========================================
 AFRAME.registerComponent('efecto-pickable', {
   schema: {
-    velocidadRot: { type: 'number', default: 0.01 },   // Qué tan rápido gira
-    amplitudFlote: { type: 'number', default: 0.15 },  // Cuánto sube y baja (metros)
-    velocidadFlote: { type: 'number', default: 0.003 } // Qué tan rápido sube y baja
+    velocidadRot: { type: 'number', default: 0.01 },   
+    amplitudFlote: { type: 'number', default: 0.15 },  
+    velocidadFlote: { type: 'number', default: 0.003 } 
   },
   init: function () {
-    // Guardamos la altura original para levitar respecto a ese punto
     this.originalY = this.el.object3D.position.y;
-    // Desfase aleatorio para que los objetos no suban y bajen sincronizados exactamente igual
     this.timeOffset = Math.random() * 1000;
   },
   tick: function (time, timeDelta) {
-    if (window.isMovementBlocked) return; // Si el juego termina, dejan de moverse
+    if (window.isMovementBlocked) return; 
 
-    // 1. Rotación continua en el eje Y
     this.el.object3D.rotation.y += this.data.velocidadRot;
 
-    // 2. Flotación suave usando la función matemática Seno
     const desfase = Math.sin((time + this.timeOffset) * this.data.velocidadFlote) * this.data.amplitudFlote;
     this.el.object3D.position.y = this.originalY + desfase;
   }
@@ -307,14 +293,12 @@ AFRAME.registerComponent('physics-movement', {
     if (this.keys.a) moveX -= 1; 
     if (this.keys.d) moveX += 1;
     
-    // --- NUEVO: Detectar si el jugador intentó caminar ---
     if (moveX !== 0 || moveZ !== 0) {
       const startScreen = document.getElementById('start-screen');
       if (startScreen && startScreen.style.display === 'none') {
         window.hasPlayerMoved = true;
       }
     }
-    // -----------------------------------------------------
 
     if (moveX !== 0 || moveZ !== 0) {
        const length = Math.sqrt(moveX*moveX + moveZ*moveZ);
@@ -397,19 +381,15 @@ AFRAME.registerComponent('stalker-ai', {
   tick: function (time, timeDelta) {
     if (!this.el.body || !this.playerBody.body || !timeDelta || this.isGameOver) return;
 
-    // --- NUEVO: TRUCO PARA CONGELAR AL MÍMICO ---
     if (!window.hasPlayerMoved) {
       const startScreen = document.getElementById('start-screen');
       const isMenuOpen = startScreen && startScreen.style.display !== 'none';
       
-      // Si el menú está cerrado, chequeamos si el jugador ha girado la cámara
       if (!isMenuOpen) {
         const camera3D = this.cameraEl.getObject3D('camera');
         if (this.lastRot === undefined) {
-          // Guardamos la rotación inicial exacta en el primer frame tras cerrar el menú
           this.lastRot = { x: camera3D.rotation.x, y: camera3D.rotation.y };
         } else {
-          // Si la rotación cambia un poco, es que el jugador ha mirado a su alrededor
           if (Math.abs(camera3D.rotation.x - this.lastRot.x) > 0.05 || 
               Math.abs(camera3D.rotation.y - this.lastRot.y) > 0.05) {
             window.hasPlayerMoved = true;
@@ -417,12 +397,10 @@ AFRAME.registerComponent('stalker-ai', {
         }
       }
 
-      // Mantenemos al mímico quieto y evitamos que sus temporizadores avancen
       this.el.body.velocity.set(0, 0, 0);
       this.el.body.force.set(0, 0, 0);
       return; 
     }
-    // --------------------------------------------
 
     if (window.isMovementBlocked) {
       this.el.body.velocity.set(0, 0, 0);
@@ -467,14 +445,12 @@ AFRAME.registerComponent('stalker-ai', {
       this.teleportTimer = 0; 
       this.stunTimer = 2000; 
 
-      // --- NUEVO: Sonido de teletransporte ---
       const teleportSound = document.getElementById('snd-teleport');
       if (teleportSound) {
         teleportSound.currentTime = 0;
         teleportSound.volume = 0.8;
         teleportSound.play();
       }
-      // ---------------------------------------
 
       const behindDir = cameraDirection.clone().multiplyScalar(-1);
       behindDir.y = 0; behindDir.normalize();
@@ -521,21 +497,19 @@ AFRAME.registerComponent('stalker-ai', {
 });
 
 // ==========================================
-// 3. RECOLECTAR ACTIVOS (MODIFICADO PARA DESVANECER Y BRILLAR EN .GLB)
+// 3. RECOLECTAR ACTIVOS 
 // ==========================================
 let lootCollected = 0;
 const targetLoot = 5;
 AFRAME.registerComponent('recolectable', {
   init: function () {
-    // --- EFECTO RESALTADO PARA MODELOS 3D (.glb) ---
     this.el.addEventListener('mouseenter', () => {
       const mesh = this.el.getObject3D('mesh');
       if (mesh) {
-        // Recorremos el modelo 3D por dentro para iluminar todos sus materiales
         mesh.traverse((node) => {
           if (node.isMesh && node.material) {
-            node.material.emissive.setHex(0x00ffcc); // Color cyan brillante
-            node.material.emissiveIntensity = 0.5;   // Intensidad del brillo
+            node.material.emissive.setHex(0x00ffcc); 
+            node.material.emissiveIntensity = 0.5;   
           }
         });
       }
@@ -544,28 +518,24 @@ AFRAME.registerComponent('recolectable', {
     this.el.addEventListener('mouseleave', () => {
       const mesh = this.el.getObject3D('mesh');
       if (mesh) {
-        // Apagamos el brillo al quitar el ratón/puntero
         mesh.traverse((node) => {
           if (node.isMesh && node.material) {
-            node.material.emissive.setHex(0x000000); // Negro (apagado)
+            node.material.emissive.setHex(0x000000); 
             node.material.emissiveIntensity = 0;
           }
         });
       }
     });
-    // -----------------------------------------------
 
     this.el.addEventListener('click', () => {
       if (this.collected) return; // Evitar clicks dobles rápidos
       if (window.isMovementBlocked && document.getElementById('victory-screen').style.display !== 'none') return;
 
-      // --- NUEVO: Sonido de objeto ---
       const objSound = document.getElementById('snd-objeto');
       if (objSound) {
-        objSound.currentTime = 0; // Reinicia el sonido por si se recogen muy rápido
+        objSound.currentTime = 0; 
         objSound.play();
       }
-      // -------------------------------
 
       this.collected = true; 
       lootCollected++;
@@ -574,7 +544,6 @@ AFRAME.registerComponent('recolectable', {
       const vrLoot = document.querySelector('#vr-loot-count');
       if (vrLoot) vrLoot.setAttribute('value', 'RASTROS: ' + lootCollected + '/5');
 
-      // --- EFECTO DE DESVANECIMIENTO SUTIL ---
       this.el.setAttribute('animation__fade', {
         property: 'scale',
         to: '0 0 0',
@@ -582,7 +551,6 @@ AFRAME.registerComponent('recolectable', {
         easing: 'easeInBack'
       });
 
-      // Eliminamos el objeto después de la animación de 500ms
       setTimeout(() => {
         if (this.el.parentNode) this.el.parentNode.removeChild(this.el); 
       }, 500);
@@ -602,7 +570,6 @@ AFRAME.registerComponent('nota-interactiva', {
   init: function () {
     const src = resolveImageSrc(this.data.img);
 
-    // --- EFECTO RESALTADO ---
     this.el.addEventListener('mouseenter', () => {
       this.el.setAttribute('material', 'emissive', '#00ffcc');
       this.el.setAttribute('material', 'emissiveIntensity', 0.25);
@@ -614,20 +581,16 @@ AFRAME.registerComponent('nota-interactiva', {
     // ------------------------
 
     if (src) {
-      // 1. Aplicamos la textura a la caja
       this.el.setAttribute('material', `src: ${src}; color: #dcd3b6; roughness: 1; metalness: 0`);
       
-      // 2. Corregir el Aspect Ratio automáticamente
       const imgObj = new Image();
       imgObj.onload = () => {
         const imgRatio = imgObj.width / imgObj.height;
         
-        // Obtenemos las dimensiones iniciales que pusiste en el HTML
         const origW = parseFloat(this.el.getAttribute('width'));
         const origH = parseFloat(this.el.getAttribute('height'));
         const origD = parseFloat(this.el.getAttribute('depth'));
 
-        // Averiguamos si es una nota en la pared (profundidad mínima) o en el suelo (altura mínima)
         const isWallNote = origD <= origW && origD <= origH; 
         const isFloorNote = origH <= origW && origH <= origD; 
 
@@ -650,17 +613,14 @@ AFRAME.registerComponent('nota-interactiva', {
       imgObj.src = src; 
     }
 
-    // 3. Lógica del click para inspeccionar
     this.el.addEventListener('click', () => {
       if (!src) return;
 
-      // --- NUEVO: Sonido de papel ---
       const paperSound = document.getElementById('snd-papel');
       if (paperSound) {
         paperSound.currentTime = 0;
         paperSound.play();
       }
-      // ------------------------------
 
       if (window.isXRActive) {
         const vrInspectorContainer = document.getElementById('vr-inspector-container');
@@ -725,14 +685,12 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   btnStart.addEventListener('click', () => {
-    // --- NUEVO: Iniciar sonido ambiente ---
     const ambientSound = document.getElementById('snd-cueva');
     if (ambientSound) {
-      ambientSound.loop = true; // Que se repita en bucle
-      ambientSound.volume = 0.4; // Volumen moderado para no tapar los demás sonidos
+      ambientSound.loop = true; 
+      ambientSound.volume = 0.4; 
       ambientSound.play();
     }
-    // --------------------------------------
 
     startScreen.style.display = 'none';
     uiContainer.style.display = 'block';

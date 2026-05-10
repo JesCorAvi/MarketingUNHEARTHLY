@@ -874,8 +874,38 @@ function initMobileControls() {
   let yawDeg   = 0;
   let pitchDeg = 0;
 
-  // Aplicar rotacion directamente al object3D de la camara,
-  // sin depender de los internals de look-controls.
+  // Eliminamos look-controls por completo en movil:
+  // A-Frame guarda la referencia del tick internamente en sceneEl.behaviors,
+  // por lo que parchear lc.tick no es suficiente. removeAttribute si lo saca del todo.
+  // Lo hacemos cuando la escena este lista.
+  const sceneEl = document.querySelector('a-scene');
+
+  function removeLookControls() {
+    if (!camera) return;
+    try { camera.removeAttribute('look-controls'); } catch(e) {}
+
+    // Fallback: A-Frame registra ticks en sceneEl.behaviors — los eliminamos a mano
+    // por si removeAttribute no los sacase (ocurre en algunos builds de A-Frame 1.4)
+    if (sceneEl && sceneEl.behaviors) {
+      ['tick','tock'].forEach(function(phase) {
+        var arr = sceneEl.behaviors[phase];
+        if (!Array.isArray(arr)) return;
+        for (var i = arr.length - 1; i >= 0; i--) {
+          var b = arr[i];
+          if (b && b.el === camera) { arr.splice(i, 1); }
+        }
+      });
+    }
+
+    if (camera.object3D) camera.object3D.rotation.order = 'YXZ';
+  }
+  if (sceneEl && sceneEl.hasLoaded) {
+    removeLookControls();
+  } else if (sceneEl) {
+    sceneEl.addEventListener('loaded', removeLookControls, { once: true });
+  }
+
+  // Bucle RAF: escribe la rotacion directamente en el object3D de la camara cada frame
   function applyRotation() {
     if (!window.isXRActive && camera && camera.object3D) {
       camera.object3D.rotation.order = 'YXZ';
@@ -884,25 +914,6 @@ function initMobileControls() {
     }
     requestAnimationFrame(applyRotation);
   }
-
-  // Parchamos el tick de look-controls para que no sobreescriba nuestra rotacion.
-  // Lo hacemos despues de que la escena este lista para garantizar que el componente exista.
-  function disableLookControls() {
-    if (camera && camera.components && camera.components['look-controls']) {
-      const lc = camera.components['look-controls'];
-      lc.tick = function() {};
-      if (typeof lc.removeEventListeners === 'function') lc.removeEventListeners();
-    }
-  }
-
-  const sceneEl = document.querySelector('a-scene');
-  if (sceneEl && sceneEl.hasLoaded) {
-    disableLookControls();
-  } else if (sceneEl) {
-    sceneEl.addEventListener('loaded', disableLookControls, { once: true });
-  }
-
-  // Arrancamos el bucle de rotacion
   requestAnimationFrame(applyRotation);
 
   // ---- JOYSTICK VIRTUAL ----

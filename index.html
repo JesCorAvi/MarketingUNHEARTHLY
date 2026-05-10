@@ -7,9 +7,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-physics-system@v4.2.2/dist/aframe-physics-system.min.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/aframe-outline-component@1.1.2/dist/aframe-outline-component.min.js"></script>
 </head>
 <body>
-  <a-scene physics="driver: local; friction: 0.0; restitution: 0.0">
+  <a-scene physics="driver: local; friction: 0.0; restitution: 0.0" aframe-outline>
 
     <a-assets timeout="10000">
       <a-asset-item id="pelchero-glb" src="modelos/pelchero.glb"></a-asset-item>
@@ -20,30 +22,30 @@
     <div id="start-screen">
       <div class="glitch-container"><h1 data-text="INTO THE UNHEARTH">INTO THE UNHEARTH</h1></div>
       <div class="instructions" style="max-width: 800px;">
-        <p style="color: #fff; font-style: italic;">"Mi amigo Elias bajó a esta mazmorra hace tres semanas. Nunca volvió. He rastreado la señal de su equipo hasta este nivel. Tengo que encontrar sus cosas antes de irme."</p>
-        <p>OBJETIVO: RECUPERAR LAS 5 PERTENENCIAS DE ELIAS.</p>
+        <p style="color: #fff; font-style: italic;">"Mi amigo bajó a esta mazmorra hace tres semanas. Nunca volvió. He rastreado la señal de su equipo hasta este nivel. Tengo que encontrar sus cosas antes de irme."</p>
+        <p>OBJETIVO: RECUPERAR LAS 5 PERTENENCIAS DE TU AMIGO.</p>
         <p>[PC]: Ratón para apuntar | Clic para inspeccionar | W A S D para moverte | [E] Linterna.</p>
-        <p class="warning">ADVERTENCIA: ALGO DESPERTÓ EN LA OSCURIDAD. TOMA LA FORMA DE UN PERCHERO. NO LE QUITES LOS OJOS DE ENCIMA.</p>
+        <p class="warning">ADVERTENCIA: ALGO DESPERTÓ EN LA OSCURIDAD. NO LE QUITES LOS OJOS DE ENCIMA.</p>
       </div>
       <button id="btn-start">DESCENDER A LA OSCURIDAD</button>
     </div>
 
     <div id="victory-screen" class="end-screen">
       <h1>ESCAPE EXITOSO</h1>
-      <p>Has recuperado los objetos de Elias. Su memoria perdurará.</p>
-      <p>Pero sabes que él sigue aquí abajo...</p>
+      <p>Has recuperado los objetos de tu amigo. Su memoria perdurará.</p>
+      <p>Pero sabes que esa cosa sigue aquí abajo...</p>
       <p class="blink-text">Saliendo de la mazmorra...</p>
     </div>
     
     <div id="death-screen" class="end-screen">
-      <h1>TE HAS PERDIDO EN LA OSCURIDAD</h1>
-      <p>El Mímico te ha reclamado. Ahora, al igual que tu amigo, eres parte de la mazmorra.</p>
+      <h1>TE HAS PERDIDO EN LA MAZMORRA</h1>
+      <p>El Mímico te ha vencido. Ahora, al igual que tu amigo, eres parte de la mazmorra.</p>
       <p class="blink-text">Tu señal se ha perdido...</p>
     </div>
 
     <div id="ui-container" style="display: none;">
       <div class="hud-box">
-        <p>RASTROS DE ELIAS: <span id="loot-count" class="highlight">0</span> / 5</p>
+        <p>OBJETOS: <span id="loot-count" class="highlight">0</span> / 5</p>
         <p>BATERÍA: <span id="battery-level" class="highlight">100%</span></p>
       </div>
     </div>
@@ -65,21 +67,21 @@
         <a-entity id="linterna-pc" light="type: spot; color: #e6f2ff; intensity: 0; angle: 40; penumbra: 0.3; distance: 25; decay: 1.5"></a-entity>
         
         <a-entity id="pc-crosshair" cursor="rayOrigin: entity; fuse: false" position="0 0 -1"
-                  raycaster="objects: .scrap, .note; far: 2"
+                  raycaster="objects: .scrap, .note; far: 3; origin: 0 0 1"
                   geometry="primitive: ring; radiusInner: 0.008; radiusOuter: 0.015"
-                  material="color: #00ffcc; shader: flat; opacity: 0.7"></a-entity>
+                  material="color: #00ffcc; shader: flat; opacity: 0.7; depthTest: false"></a-entity>
 
         <a-entity id="vr-victory-screen" visible="false" position="0 0 -0.8">
           <a-plane width="1.5" height="0.8" color="#001a11" material="opacity: 0.95; shader: flat; depthTest: false"></a-plane>
           <a-text value="ESCAPE EXITOSO" position="0 0.15 0.01" align="center" scale="0.4 0.4 0.4" color="#00ffcc" material="depthTest: false"></a-text>
-          <a-text value="Has recuperado las cosas de Elias." position="0 -0.05 0.01" align="center" scale="0.15 0.15 0.15" color="#fff" material="depthTest: false"></a-text>
+          <a-text value="Has recuperado las cosas de tu amigo." position="0 -0.05 0.01" align="center" scale="0.15 0.15 0.15" color="#fff" material="depthTest: false"></a-text>
           <a-text value="Saliendo de la mazmorra..." position="0 -0.2 0.01" align="center" scale="0.12 0.12 0.12" color="#aaa" material="depthTest: false" animation="property: opacity; dir: alternate; dur: 1000; loop: true; from: 1; to: 0.3"></a-text>
         </a-entity>
 
         <a-entity id="vr-death-screen" visible="false" position="0 0 -0.8">
           <a-plane width="1.5" height="0.8" color="#1a0000" material="opacity: 0.95; shader: flat; depthTest: false"></a-plane>
           <a-text value="SENAL PERDIDA" position="0 0.15 0.01" align="center" scale="0.4 0.4 0.4" color="#ff3333" material="depthTest: false"></a-text>
-          <a-text value="El Mimico te reclamo. Ahora eres parte del lugar." position="0 -0.05 0.01" align="center" scale="0.15 0.15 0.15" color="#fff" material="depthTest: false"></a-text>
+          <a-text value="El Mimico ha acabado contigo. Ahora eres parte del lugar." position="0 -0.05 0.01" align="center" scale="0.15 0.15 0.15" color="#fff" material="depthTest: false"></a-text>
           <a-text value="Cerrando transmision..." position="0 -0.2 0.01" align="center" scale="0.12 0.12 0.12" color="#aaa" material="depthTest: false" animation="property: opacity; dir: alternate; dur: 1000; loop: true; from: 1; to: 0.3"></a-text>
         </a-entity>
 
@@ -95,7 +97,7 @@
                 
         <a-entity id="vr-wrist-hud" position="0 0.12 -0.05" rotation="-45 0 0" visible="false">
           <a-plane width="0.15" height="0.06" color="#000f0a" material="opacity: 0.9"></a-plane>
-          <a-text id="vr-loot-count" value="RASTROS: 0/5" position="-0.06 0.015 0.001" scale="0.1 0.1 0.1" color="#00ffcc"></a-text>
+          <a-text id="vr-loot-count" value="OBJ: 0/5" position="-0.06 0.015 0.001" scale="0.1 0.1 0.1" color="#00ffcc"></a-text>
           <a-text id="vr-battery-level" value="BAT: 100%" position="-0.06 -0.015 0.001" scale="0.1 0.1 0.1" color="#00ffcc"></a-text>
         </a-entity>
 
@@ -120,10 +122,10 @@
 
     <a-entity id="vr-controls-sign" position="0 2 20.5" visible="false">
       <a-plane width="3" height="1.8" color="#000f0a" material="opacity: 0.9"></a-plane>
-      <a-text value="PROTOCOLO VR ACTIVO" position="0 0.6 0.05" align="center" width="4" color="#ff3333"></a-text>
+      <a-text value="MODO VR ACTIVO" position="0 0.6 0.05" align="center" width="4" color="#ff3333"></a-text>
       <a-text value="IZQ: MOVERSE | DER: GIRAR CAMARA\nAMBAS MANOS: INTERACTUAR\nLINTERNA: BOTONES A/B/X\nINFO HUD: BOTON Y\nNOTAS: APARECEN EN TU MANO IZQUIERDA" 
               position="0 -0.1 0.05" align="center" width="3" color="#00ffcc"></a-text>
-      <a-text value="EL MIMICO SOLO SE DETIENE SI LO MIRAS." position="0 -0.6 0.05" align="center" width="2.5" color="#ff3333"></a-text>
+      <a-text value="NO LE QUITES EL OJO DE ENCIMA." position="0 -0.6 0.05" align="center" width="2.5" color="#ff3333"></a-text>
     </a-entity>
 
     <a-sky color="#020202"></a-sky>
@@ -181,7 +183,7 @@
 
   <div id="image-inspector">
     <img id="inspector-img" src="" alt="Documento">
-    <button id="btn-close-inspector">CERRAR ARCHIVO</button>
+    <button id="btn-close-inspector">CERRAR DIBUJO</button>
   </div>
 
   <script src="script.js"></script>

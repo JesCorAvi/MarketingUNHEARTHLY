@@ -360,6 +360,17 @@ let lootCollected = 0;
 const targetLoot = 5;
 AFRAME.registerComponent('recolectable', {
   init: function () {
+    // --- EFECTO RESALTADO ---
+    this.el.addEventListener('mouseenter', () => {
+      this.el.setAttribute('material', 'emissive', '#ffffff');
+      this.el.setAttribute('material', 'emissiveIntensity', 0.5);
+    });
+    this.el.addEventListener('mouseleave', () => {
+      this.el.setAttribute('material', 'emissive', '#000000');
+      this.el.setAttribute('material', 'emissiveIntensity', 0);
+    });
+    // ------------------------
+
     this.el.addEventListener('click', () => {
       if (window.isMovementBlocked && document.getElementById('victory-screen').style.display !== 'none') return;
 
@@ -386,6 +397,17 @@ AFRAME.registerComponent('nota-interactiva', {
   init: function () {
     const src = resolveImageSrc(this.data.img);
 
+    // --- EFECTO RESALTADO ---
+    this.el.addEventListener('mouseenter', () => {
+      this.el.setAttribute('material', 'emissive', '#00ffcc');
+      this.el.setAttribute('material', 'emissiveIntensity', 0.25);
+    });
+    this.el.addEventListener('mouseleave', () => {
+      this.el.setAttribute('material', 'emissive', '#000000');
+      this.el.setAttribute('material', 'emissiveIntensity', 0);
+    });
+    // ------------------------
+
     if (src) {
       // 1. Aplicamos la textura a la caja
       this.el.setAttribute('material', `src: ${src}; color: #dcd3b6; roughness: 1; metalness: 0`);
@@ -405,17 +427,13 @@ AFRAME.registerComponent('nota-interactiva', {
         const isFloorNote = origH <= origW && origH <= origD; 
 
         if (isWallNote) {
-          // Notas en la pared (se ven de frente, usan Width y Height)
           const boxRatio = origW / origH;
           if (imgRatio > boxRatio) {
-            // Si la imagen es más panorámica que la caja, reducimos la altura
             this.el.setAttribute('height', origW / imgRatio);
           } else {
-            // Si la imagen es más vertical que la caja, reducimos el ancho
             this.el.setAttribute('width', origH * imgRatio);
           }
         } else if (isFloorNote) {
-          // Notas en el suelo (se ven desde arriba, usan Width y Depth)
           const boxRatio = origW / origD;
           if (imgRatio > boxRatio) {
             this.el.setAttribute('depth', origW / imgRatio);
@@ -424,7 +442,7 @@ AFRAME.registerComponent('nota-interactiva', {
           }
         }
       };
-      imgObj.src = src; // Dispara la carga de la imagen
+      imgObj.src = src; 
     }
 
     // 3. Lógica del click para inspeccionar

@@ -58,7 +58,7 @@ function resolveImageSrc(src) {
 // ==========================================
 AFRAME.registerComponent('brillo-sombrero', {
   schema: {
-    intensidad: { type: 'number', default: 0.3 } // Ajusta este valor si quieres más o menos brillo
+    intensidad: { type: 'number', default: 0.3 } 
   },
   init: function () {
     this.el.addEventListener('model-loaded', () => {
@@ -66,19 +66,13 @@ AFRAME.registerComponent('brillo-sombrero', {
       if (!mesh) return;
 
       mesh.traverse((node) => {
-        // Busca cualquier malla que contenga "sombrero" en su nombre (ignorando mayúsculas/minúsculas)
         if (node.isMesh && node.name.toLowerCase().includes('sombrero')) {
-          
-          // Si el material tiene una textura (mapa de colores), la usamos también para emitir luz
           if (node.material.map) {
             node.material.emissiveMap = node.material.map;
-            node.material.emissive.setHex(0xffffff); // Blanco para no teñir la textura
+            node.material.emissive.setHex(0xffffff); 
           } else {
-            // Si son colores sólidos, usamos su color original como color emisivo
             node.material.emissive.copy(node.material.color);
           }
-          
-          // Aplicamos la intensidad del brillo
           node.material.emissiveIntensity = this.data.intensidad;
         }
       });
@@ -373,7 +367,7 @@ AFRAME.registerComponent('recolectable', {
       document.querySelector('#loot-count').innerText = lootCollected;
       
       const vrLoot = document.querySelector('#vr-loot-count');
-      if (vrLoot) vrLoot.setAttribute('value', 'OBJ: ' + lootCollected + '/5');
+      if (vrLoot) vrLoot.setAttribute('value', 'RASTROS: ' + lootCollected + '/5');
 
       this.el.parentNode.removeChild(this.el); 
       
@@ -385,13 +379,56 @@ AFRAME.registerComponent('recolectable', {
 });
 
 // ==========================================
-// 4. LÓGICA DE NOTAS (INSPECTOR DE IMÁGENES)
+// 4. LÓGICA DE NOTAS (INSPECTOR DE IMÁGENES Y TEXTURAS)
 // ==========================================
 AFRAME.registerComponent('nota-interactiva', {
   schema: { img: {type: 'string'} },
   init: function () {
+    const src = resolveImageSrc(this.data.img);
+
+    if (src) {
+      // 1. Aplicamos la textura a la caja
+      this.el.setAttribute('material', `src: ${src}; color: #dcd3b6; roughness: 1; metalness: 0`);
+      
+      // 2. Corregir el Aspect Ratio automáticamente
+      const imgObj = new Image();
+      imgObj.onload = () => {
+        const imgRatio = imgObj.width / imgObj.height;
+        
+        // Obtenemos las dimensiones iniciales que pusiste en el HTML
+        const origW = parseFloat(this.el.getAttribute('width'));
+        const origH = parseFloat(this.el.getAttribute('height'));
+        const origD = parseFloat(this.el.getAttribute('depth'));
+
+        // Averiguamos si es una nota en la pared (profundidad mínima) o en el suelo (altura mínima)
+        const isWallNote = origD <= origW && origD <= origH; 
+        const isFloorNote = origH <= origW && origH <= origD; 
+
+        if (isWallNote) {
+          // Notas en la pared (se ven de frente, usan Width y Height)
+          const boxRatio = origW / origH;
+          if (imgRatio > boxRatio) {
+            // Si la imagen es más panorámica que la caja, reducimos la altura
+            this.el.setAttribute('height', origW / imgRatio);
+          } else {
+            // Si la imagen es más vertical que la caja, reducimos el ancho
+            this.el.setAttribute('width', origH * imgRatio);
+          }
+        } else if (isFloorNote) {
+          // Notas en el suelo (se ven desde arriba, usan Width y Depth)
+          const boxRatio = origW / origD;
+          if (imgRatio > boxRatio) {
+            this.el.setAttribute('depth', origW / imgRatio);
+          } else {
+            this.el.setAttribute('width', origD * imgRatio);
+          }
+        }
+      };
+      imgObj.src = src; // Dispara la carga de la imagen
+    }
+
+    // 3. Lógica del click para inspeccionar
     this.el.addEventListener('click', () => {
-      const src = resolveImageSrc(this.data.img);
       if (!src) return;
 
       if (window.isXRActive) {

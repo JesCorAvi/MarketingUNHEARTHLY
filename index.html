@@ -15,6 +15,19 @@
 
     <a-assets timeout="10000">
       <a-asset-item id="pelchero-glb" src="modelos/pelchero.glb"></a-asset-item>
+      <a-asset-item id="bocadillo-glb" src="modelos/bocadillo.glb"></a-asset-item>
+      <a-asset-item id="faro-glb" src="modelos/faro.glb"></a-asset-item>
+      <a-asset-item id="frasco-glb" src="modelos/frasco.glb"></a-asset-item>
+      <a-asset-item id="frasco2-glb" src="modelos/frasco2.glb"></a-asset-item>
+      <a-asset-item id="nintendo-glb" src="modelos/nintendo.glb"></a-asset-item>
+
+      <!-- Precarga de sonidos -->
+      <audio id="snd-cueva" src="sonidos/cueva.wav" preload="auto"></audio>
+      <audio id="snd-muerte" src="sonidos/muerte.wav" preload="auto"></audio>
+      <audio id="snd-objeto" src="sonidos/objeto.wav" preload="auto"></audio>
+      <audio id="snd-papel" src="sonidos/papelwav.wav" preload="auto"></audio>
+      <audio id="snd-teleport" src="sonidos/teleport.mp3" preload="auto"></audio>
+      <audio id="snd-win" src="sonidos/win.wav" preload="auto"></audio>
     </a-assets>
 
     <div class="crt-overlay"></div>
@@ -162,11 +175,11 @@
       </a-entity>
     </a-entity>
 
-    <a-box class="scrap" recolectable position="22 0.5 22" color="#00ffcc" scale="0.4 0.4 0.4"></a-box>
-    <a-cylinder class="scrap" recolectable position="-22 0.5 22" radius="0.2" height="0.5" color="#00ffcc"></a-cylinder>
-    <a-sphere class="scrap" recolectable position="-22 0.5 -22" radius="0.25" color="#00ffcc"></a-sphere>
-    <a-tetrahedron class="scrap" recolectable position="22 0.5 -22" radius="0.3" color="#00ffcc"></a-tetrahedron>
-    <a-dodecahedron class="scrap" recolectable position="0 0.5 0" radius="0.3" color="#00ffcc"></a-dodecahedron>
+    <a-entity class="scrap" recolectable efecto-pickable auto-escala="maxSize: 0.6" gltf-model="#bocadillo-glb" position="22 0.5 22"></a-entity>
+    <a-entity class="scrap" recolectable efecto-pickable auto-escala="maxSize: 0.6" gltf-model="#faro-glb" position="-22 0.5 22"></a-entity>
+    <a-entity class="scrap" recolectable efecto-pickable auto-escala="maxSize: 0.6" gltf-model="#frasco-glb" position="-22 0.5 -22"></a-entity>
+    <a-entity class="scrap" recolectable efecto-pickable auto-escala="maxSize: 0.6" gltf-model="#frasco2-glb" position="22 0.5 -22"></a-entity>
+    <a-entity class="scrap" recolectable efecto-pickable auto-escala="maxSize: 0.6" gltf-model="#nintendo-glb" position="0 0.5 0"></a-entity>
 
     <a-box class="note" nota-interactiva="img: concepts/2.png" position="0 1.5 23.95" rotation="0 180 0" depth="0.05" height="0.8" width="0.6" material="color: #fff"></a-box>
     <a-box class="note" nota-interactiva="img: concepts/6.png" position="-8 0.05 12" rotation="0 45 0" depth="0.6" height="0.05" width="0.8"></a-box>

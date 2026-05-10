@@ -1,5 +1,3 @@
-// script.js
-
 window.isXRActive = false;
 
 // ==========================================
@@ -8,6 +6,19 @@ window.isXRActive = false;
 window.endGame = function(isVictory) {
   // Bloquear al jugador (y al mímico)
   window.isMovementBlocked = true;
+
+  // --- NUEVO: Pausar ambiente de cueva y reproducir final ---
+  const ambientSound = document.getElementById('snd-cueva');
+  if (ambientSound) ambientSound.pause();
+
+  if (isVictory) {
+    const winSnd = document.getElementById('snd-win');
+    if (winSnd) winSnd.play();
+  } else {
+    const deathSnd = document.getElementById('snd-muerte');
+    if (deathSnd) deathSnd.play();
+  }
+  // ----------------------------------------------------------
   
   if (window.isXRActive) {
     // Modo VR
@@ -79,6 +90,58 @@ AFRAME.registerComponent('brillo-sombrero', {
     });
   }
 });
+
+// ==========================================
+// AÑADIDO: AUTO-ESCALA PARA MODELOS 3D
+// ==========================================
+AFRAME.registerComponent('auto-escala', {
+  schema: { maxSize: { type: 'number', default: 0.5 } },
+  init: function () {
+    this.el.addEventListener('model-loaded', () => {
+      const mesh = this.el.getObject3D('mesh');
+      if (!mesh) return;
+
+      const box = new THREE.Box3().setFromObject(mesh);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+
+      const maxDim = Math.max(size.x, size.y, size.z);
+
+      if (maxDim > 0) {
+        const scaleFactor = this.data.maxSize / maxDim;
+        this.el.object3D.scale.set(scaleFactor, scaleFactor, scaleFactor);
+      }
+    });
+  }
+});
+
+// ==========================================
+// AÑADIDO: EFECTO PICKABLE (FLOTE Y ROTACIÓN)
+// ==========================================
+AFRAME.registerComponent('efecto-pickable', {
+  schema: {
+    velocidadRot: { type: 'number', default: 0.01 },   // Qué tan rápido gira
+    amplitudFlote: { type: 'number', default: 0.15 },  // Cuánto sube y baja (metros)
+    velocidadFlote: { type: 'number', default: 0.003 } // Qué tan rápido sube y baja
+  },
+  init: function () {
+    // Guardamos la altura original para levitar respecto a ese punto
+    this.originalY = this.el.object3D.position.y;
+    // Desfase aleatorio para que los objetos no suban y bajen sincronizados exactamente igual
+    this.timeOffset = Math.random() * 1000;
+  },
+  tick: function (time, timeDelta) {
+    if (window.isMovementBlocked) return; // Si el juego termina, dejan de moverse
+
+    // 1. Rotación continua en el eje Y
+    this.el.object3D.rotation.y += this.data.velocidadRot;
+
+    // 2. Flotación suave usando la función matemática Seno
+    const desfase = Math.sin((time + this.timeOffset) * this.data.velocidadFlote) * this.data.amplitudFlote;
+    this.el.object3D.position.y = this.originalY + desfase;
+  }
+});
+
 
 // ==========================================
 // COMPONENTES VR: MOVIMIENTO Y ROTACIÓN
@@ -309,6 +372,15 @@ AFRAME.registerComponent('stalker-ai', {
       this.teleportTimer = 0; 
       this.stunTimer = 2000; 
 
+      // --- NUEVO: Sonido de teletransporte ---
+      const teleportSound = document.getElementById('snd-teleport');
+      if (teleportSound) {
+        teleportSound.currentTime = 0;
+        teleportSound.volume = 0.8;
+        teleportSound.play();
+      }
+      // ---------------------------------------
+
       const behindDir = cameraDirection.clone().multiplyScalar(-1);
       behindDir.y = 0; behindDir.normalize();
       
@@ -354,33 +426,71 @@ AFRAME.registerComponent('stalker-ai', {
 });
 
 // ==========================================
-// 3. RECOLECTAR ACTIVOS
+// 3. RECOLECTAR ACTIVOS (MODIFICADO PARA DESVANECER Y BRILLAR EN .GLB)
 // ==========================================
 let lootCollected = 0;
 const targetLoot = 5;
 AFRAME.registerComponent('recolectable', {
   init: function () {
-    // --- EFECTO RESALTADO ---
+    // --- EFECTO RESALTADO PARA MODELOS 3D (.glb) ---
     this.el.addEventListener('mouseenter', () => {
-      this.el.setAttribute('material', 'emissive', '#ffffff');
-      this.el.setAttribute('material', 'emissiveIntensity', 0.5);
+      const mesh = this.el.getObject3D('mesh');
+      if (mesh) {
+        // Recorremos el modelo 3D por dentro para iluminar todos sus materiales
+        mesh.traverse((node) => {
+          if (node.isMesh && node.material) {
+            node.material.emissive.setHex(0x00ffcc); // Color cyan brillante
+            node.material.emissiveIntensity = 0.5;   // Intensidad del brillo
+          }
+        });
+      }
     });
+
     this.el.addEventListener('mouseleave', () => {
-      this.el.setAttribute('material', 'emissive', '#000000');
-      this.el.setAttribute('material', 'emissiveIntensity', 0);
+      const mesh = this.el.getObject3D('mesh');
+      if (mesh) {
+        // Apagamos el brillo al quitar el ratón/puntero
+        mesh.traverse((node) => {
+          if (node.isMesh && node.material) {
+            node.material.emissive.setHex(0x000000); // Negro (apagado)
+            node.material.emissiveIntensity = 0;
+          }
+        });
+      }
     });
-    // ------------------------
+    // -----------------------------------------------
 
     this.el.addEventListener('click', () => {
+      if (this.collected) return; // Evitar clicks dobles rápidos
       if (window.isMovementBlocked && document.getElementById('victory-screen').style.display !== 'none') return;
 
+      // --- NUEVO: Sonido de objeto ---
+      const objSound = document.getElementById('snd-objeto');
+      if (objSound) {
+        objSound.currentTime = 0; // Reinicia el sonido por si se recogen muy rápido
+        objSound.play();
+      }
+      // -------------------------------
+
+      this.collected = true; 
       lootCollected++;
       document.querySelector('#loot-count').innerText = lootCollected;
       
       const vrLoot = document.querySelector('#vr-loot-count');
       if (vrLoot) vrLoot.setAttribute('value', 'RASTROS: ' + lootCollected + '/5');
 
-      this.el.parentNode.removeChild(this.el); 
+      // --- EFECTO DE DESVANECIMIENTO SUTIL ---
+      this.el.setAttribute('animation__fade', {
+        property: 'scale',
+        to: '0 0 0',
+        dur: 500,
+        easing: 'easeInBack'
+      });
+
+      // Eliminamos el objeto después de la animación de 500ms
+      setTimeout(() => {
+        if (this.el.parentNode) this.el.parentNode.removeChild(this.el); 
+      }, 500);
       
       if (lootCollected >= targetLoot) {
         window.endGame(true);
@@ -449,6 +559,14 @@ AFRAME.registerComponent('nota-interactiva', {
     this.el.addEventListener('click', () => {
       if (!src) return;
 
+      // --- NUEVO: Sonido de papel ---
+      const paperSound = document.getElementById('snd-papel');
+      if (paperSound) {
+        paperSound.currentTime = 0;
+        paperSound.play();
+      }
+      // ------------------------------
+
       if (window.isXRActive) {
         const vrInspectorContainer = document.getElementById('vr-inspector-container');
         const vrInspector = document.getElementById('vr-inspector');
@@ -512,6 +630,15 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   btnStart.addEventListener('click', () => {
+    // --- NUEVO: Iniciar sonido ambiente ---
+    const ambientSound = document.getElementById('snd-cueva');
+    if (ambientSound) {
+      ambientSound.loop = true; // Que se repita en bucle
+      ambientSound.volume = 0.4; // Volumen moderado para no tapar los demás sonidos
+      ambientSound.play();
+    }
+    // --------------------------------------
+
     startScreen.style.display = 'none';
     uiContainer.style.display = 'block';
     btnLinterna.style.display = 'block';

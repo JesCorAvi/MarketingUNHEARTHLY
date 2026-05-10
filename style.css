@@ -45,6 +45,7 @@ body {
   text-align: center;
   border: 2px solid #00ffcc;
   box-sizing: border-box;
+  padding: 20px;
 }
 
 .glitch-container h1 {
@@ -68,6 +69,10 @@ body {
   font-weight: bold;
   animation: blink 1.5s infinite;
 }
+
+/* Show/hide platform-specific instructions */
+.instructions-pc { display: block; }
+.instructions-mobile { display: none; }
 
 @keyframes blink {
   0%,
@@ -143,6 +148,7 @@ body {
   color: #000;
 }
 
+/* Legacy dpad (hidden by default on mobile, kept for compat) */
 #dpad {
   position: absolute;
   bottom: 40px;
@@ -194,6 +200,77 @@ body {
   width: 50px;
   height: 50px;
   border-right: 3px solid #00ffcc;
+}
+
+/* ==========================================
+   CONTROLES MÓVIL: JOYSTICK + LOOK ZONE
+   ========================================== */
+#mobile-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  /* 40% of screen height for the control strip */
+  height: 42vmin;
+  max-height: 220px;
+  z-index: 1000;
+  pointer-events: none; /* children handle events */
+  display: flex;
+  align-items: center;
+}
+
+/* Joystick base — left half */
+#joystick-base {
+  position: relative;
+  pointer-events: all;
+  width: 130px;
+  height: 130px;
+  margin-left: 24px;
+  border-radius: 50%;
+  background: rgba(0, 255, 204, 0.06);
+  border: 2px solid rgba(0, 255, 204, 0.4);
+  box-shadow: 0 0 18px rgba(0, 255, 204, 0.15), inset 0 0 12px rgba(0,0,0,0.6);
+  flex-shrink: 0;
+  touch-action: none;
+}
+
+#joystick-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(0,255,204,0.55), rgba(0,255,204,0.18));
+  border: 2px solid rgba(0, 255, 204, 0.7);
+  box-shadow: 0 0 12px rgba(0, 255, 204, 0.4);
+  pointer-events: none;
+  transition: background 0.1s;
+}
+
+/* Look zone — fills remaining space on the right */
+#look-zone {
+  pointer-events: all;
+  flex: 1;
+  height: 100%;
+  margin: 0 12px 0 16px;
+  border: 1px solid rgba(0, 255, 204, 0.15);
+  border-radius: 10px;
+  background: rgba(0, 255, 204, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+#look-zone-hint {
+  color: rgba(0, 255, 204, 0.25);
+  font-size: 11px;
+  text-align: center;
+  pointer-events: none;
+  letter-spacing: 1px;
+  line-height: 1.6;
 }
 
 #image-inspector {
@@ -326,4 +403,82 @@ body {
   margin-top: 15px;
   font-size: 1.2rem;
   color: #00ffcc;
+}
+
+/* ==========================================
+   RESPONSIVE MÓVIL
+   ========================================== */
+@media (max-width: 768px), (pointer: coarse) {
+  /* Switch instruction text */
+  .instructions-pc { display: none; }
+  .instructions-mobile { display: block; color: #aaa; }
+
+  /* Smaller title on mobile */
+  .glitch-container h1 {
+    font-size: 28px;
+    letter-spacing: 3px;
+  }
+
+  .instructions p {
+    font-size: 13px;
+    margin: 5px 10px;
+  }
+
+  #btn-start {
+    font-size: 16px;
+    padding: 12px 28px;
+    margin-top: 24px;
+  }
+
+  /* HUD: top-left, compact */
+  #ui-container {
+    top: 12px;
+    left: 12px;
+  }
+  .hud-box {
+    padding: 8px 14px;
+  }
+  .hud-box p {
+    font-size: 13px;
+    margin: 4px 0;
+  }
+  .highlight {
+    font-size: 15px;
+  }
+
+  /* Lantern button: top-right so it doesn't cover look zone */
+  #btn-linterna {
+    bottom: auto;
+    top: 12px;
+    right: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    border-left: 3px solid #00ffcc;
+  }
+
+  /* End screens: smaller text */
+  .end-screen h1 {
+    font-size: 32px;
+  }
+  .end-screen p {
+    font-size: 15px;
+    padding: 0 20px;
+  }
+
+  /* Image inspector: full screen on mobile */
+  #image-inspector {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-width: 2px;
+  }
+  #inspector-img {
+    max-height: 70%;
+  }
+  #btn-close-inspector {
+    font-size: 16px;
+    padding: 12px 28px;
+    margin-top: 16px;
+  }
 }

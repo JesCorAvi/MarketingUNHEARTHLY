@@ -1,5 +1,6 @@
 window.isXRActive = false;
 window.hasPlayerMoved = false; 
+window.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 // ==========================================
 // CONTROLADOR DE FIN DE JUEGO
@@ -25,7 +26,7 @@ window.endGame = function(isVictory) {
       document.getElementById('vr-death-screen').setAttribute('visible', 'true');
     }
   } else {
-    document.exitPointerLock();
+    if (!window.isMobile) document.exitPointerLock();
     if (isVictory) {
       document.getElementById('victory-screen').style.display = 'flex';
     } else {
@@ -252,6 +253,9 @@ AFRAME.registerComponent('physics-movement', {
     this.touchX = 0; this.touchZ = 0;
     this.thumbstickX = 0; this.thumbstickZ = 0; 
 
+    // Mobile joystick values (set externally by mobile-controls component)
+    this.joystickX = 0; this.joystickZ = 0;
+
     this.stepTimer = this.data.stepInterval; 
     
     this.soundsLeft = [
@@ -280,6 +284,7 @@ AFRAME.registerComponent('physics-movement', {
       if(this.keys.hasOwnProperty(e.key.toLowerCase())) this.keys[e.key.toLowerCase()] = false;
     });
 
+    // Legacy dpad buttons (kept for backwards compatibility, hidden on mobile)
     const setupBtn = (id, xDir, zDir) => {
       const btn = document.getElementById(id);
       if (!btn) return;
@@ -301,8 +306,8 @@ AFRAME.registerComponent('physics-movement', {
       return; 
     }
 
-    let moveX = this.touchX + this.thumbstickX; 
-    let moveZ = this.touchZ + this.thumbstickZ;
+    let moveX = this.touchX + this.thumbstickX + this.joystickX; 
+    let moveZ = this.touchZ + this.thumbstickZ + this.joystickZ;
     
     if (this.keys.w) moveZ -= 1; 
     if (this.keys.s) moveZ += 1;
@@ -685,7 +690,7 @@ AFRAME.registerComponent('nota-interactiva', {
         
         setTimeout(() => { window.isMovementBlocked = true; }, 100);
       } else {
-        document.exitPointerLock();
+        if (!window.isMobile) document.exitPointerLock();
         setTimeout(() => {
           const inspector = document.getElementById('image-inspector');
           const imgEl = document.getElementById('inspector-img');
@@ -716,7 +721,9 @@ window.addEventListener('DOMContentLoaded', () => {
   const btnCloseInspector = document.getElementById('btn-close-inspector');
   btnCloseInspector.addEventListener('click', () => {
     document.getElementById('image-inspector').style.display = 'none';
-    document.querySelector('a-scene').canvas.requestPointerLock();
+    if (!window.isMobile) {
+      document.querySelector('a-scene').canvas.requestPointerLock();
+    }
     window.isMovementBlocked = false;
   });
 
@@ -747,10 +754,17 @@ window.addEventListener('DOMContentLoaded', () => {
     startScreen.style.display = 'none';
     uiContainer.style.display = 'block';
     btnLinterna.style.display = 'block';
-    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-      dpad.style.display = 'block';
+    
+    if (window.isMobile) {
+      // Show mobile joystick, hide legacy dpad
+      const mobileControls = document.getElementById('mobile-controls');
+      if (mobileControls) mobileControls.style.display = 'block';
+      if (dpad) dpad.style.display = 'none';
+      initMobileControls();
+    } else {
+      // Desktop: pointer lock
+      document.querySelector('a-scene').canvas.click();
     }
-    document.querySelector('a-scene').canvas.click();
   });
 
   function closeVRNote() {
@@ -843,3 +857,196 @@ window.addEventListener('DOMContentLoaded', () => {
     
   }, 200);
 });
+
+// ==========================================
+// 6. CONTROLES MÓVIL: JOYSTICK + CÁMARA TÁCTIL
+// ==========================================
+function initMobileControls() {
+  if (!window.isMobile) return;
+
+  // ---- LOOK CONTROLS: desactivar pointer lock en móvil ----
+  const camera = document.querySelector('#player-camera');
+  if (camera) {
+    camera.setAttribute('look-controls', 'pointerLockEnabled: false; touchEnabled: false');
+  }
+
+  const rig = document.querySelector('#rig');
+  const pm = () => rig && rig.components && rig.components['physics-movement'];
+
+  // ---- JOYSTICK VIRTUAL ----
+  const joystickBase = document.getElementById('joystick-base');
+  const joystickKnob = document.getElementById('joystick-knob');
+  if (!joystickBase || !joystickKnob) return;
+
+  const JOYSTICK_RADIUS = 55; // max px the knob can move
+  let joystickTouchId = null;
+  let joystickOriginX = 0;
+  let joystickOriginY = 0;
+
+  function resetJoystick() {
+    joystickKnob.style.transform = 'translate(-50%, -50%)';
+    joystickTouchId = null;
+    const p = pm();
+    if (p) { p.joystickX = 0; p.joystickZ = 0; }
+  }
+
+  joystickBase.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (joystickTouchId !== null) return;
+    const t = e.changedTouches[0];
+    joystickTouchId = t.identifier;
+    const rect = joystickBase.getBoundingClientRect();
+    joystickOriginX = rect.left + rect.width / 2;
+    joystickOriginY = rect.top + rect.height / 2;
+  }, { passive: false });
+
+  document.addEventListener('touchmove', (e) => {
+    if (joystickTouchId === null) return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (t.identifier !== joystickTouchId) continue;
+      e.preventDefault();
+
+      let dx = t.clientX - joystickOriginX;
+      let dy = t.clientY - joystickOriginY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist > JOYSTICK_RADIUS) {
+        dx = (dx / dist) * JOYSTICK_RADIUS;
+        dy = (dy / dist) * JOYSTICK_RADIUS;
+      }
+
+      joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+      const nx = dx / JOYSTICK_RADIUS;
+      const ny = dy / JOYSTICK_RADIUS;
+
+      const p = pm();
+      if (p) {
+        p.joystickX = nx;
+        p.joystickZ = ny;
+      }
+      // signal that player is moving
+      window.hasPlayerMoved = true;
+      break;
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', (e) => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === joystickTouchId) {
+        resetJoystick();
+        break;
+      }
+    }
+  });
+
+  document.addEventListener('touchcancel', (e) => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === joystickTouchId) {
+        resetJoystick();
+        break;
+      }
+    }
+  });
+
+  // ---- ZONA DE CÁMARA (lado derecho de pantalla) ----
+  const lookZone = document.getElementById('look-zone');
+  if (!lookZone) return;
+
+  let lookTouchId = null;
+  let lookLastX = 0;
+  let lookLastY = 0;
+
+  // Sensitivity (degrees per pixel)
+  const LOOK_SENSITIVITY_X = 0.25;
+  const LOOK_SENSITIVITY_Y = 0.18;
+
+  // We'll manipulate the camera's look-controls rotation directly via yaw/pitch
+  let yaw = 0;
+  let pitch = 0;
+
+  // Initialize from current camera rotation
+  const camObj = camera.getObject3D('camera');
+  if (camObj) {
+    yaw   = THREE.MathUtils.radToDeg(camObj.rotation.y);
+    pitch = THREE.MathUtils.radToDeg(camObj.rotation.x);
+  }
+
+  lookZone.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (lookTouchId !== null) return;
+    const t = e.changedTouches[0];
+    lookTouchId = t.identifier;
+    lookLastX = t.clientX;
+    lookLastY = t.clientY;
+    window.hasPlayerMoved = true;
+  }, { passive: false });
+
+  lookZone.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (t.identifier !== lookTouchId) continue;
+
+      const dx = t.clientX - lookLastX;
+      const dy = t.clientY - lookLastY;
+      lookLastX = t.clientX;
+      lookLastY = t.clientY;
+
+      yaw   -= dx * LOOK_SENSITIVITY_X;
+      pitch -= dy * LOOK_SENSITIVITY_Y;
+      pitch  = Math.max(-85, Math.min(85, pitch));
+
+      // Apply rotation to the camera object directly (bypasses look-controls)
+      const camObject3D = camera.getObject3D('camera');
+      if (camObject3D) {
+        camObject3D.rotation.set(
+          THREE.MathUtils.degToRad(pitch),
+          THREE.MathUtils.degToRad(yaw),
+          0,
+          'YXZ'
+        );
+      }
+      window.hasPlayerMoved = true;
+      break;
+    }
+  }, { passive: false });
+
+  lookZone.addEventListener('touchend', (e) => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === lookTouchId) {
+        lookTouchId = null;
+        break;
+      }
+    }
+  });
+
+  lookZone.addEventListener('touchcancel', (e) => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === lookTouchId) {
+        lookTouchId = null;
+        break;
+      }
+    }
+  });
+
+  // ---- TAP EN ZONA CÁMARA = interactuar (dispara click en crosshair) ----
+  lookZone.addEventListener('click', (e) => {
+    if (window.isMovementBlocked) return;
+    // Emit a click via the raycaster cursor
+    const crosshair = document.getElementById('pc-crosshair');
+    if (crosshair) {
+      const raycaster = crosshair.components.raycaster;
+      if (raycaster) {
+        const intersectedEls = raycaster.intersectedEls;
+        if (intersectedEls && intersectedEls.length > 0) {
+          intersectedEls[0].emit('click');
+        }
+      }
+    }
+  });
+}

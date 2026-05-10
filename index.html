@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Into the Unhearth</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -47,7 +48,8 @@
       <div class="instructions" style="max-width: 800px;">
         <p style="color: #fff; font-style: italic;">"Mi amigo bajó a esta mazmorra hace tres semanas. Nunca volvió. He rastreado la señal de su equipo hasta este nivel. Tengo que encontrar sus cosas antes de irme."</p>
         <p>OBJETIVO: RECUPERAR LAS 5 PERTENENCIAS DE TU AMIGO.</p>
-        <p>[PC]: Ratón para apuntar | Clic para inspeccionar | W A S D para moverte | [E] Linterna.</p>
+        <p class="instructions-pc">[PC]: Ratón para apuntar | Clic para inspeccionar | W A S D para moverte | [E] Linterna.</p>
+        <p class="instructions-mobile">Joystick izquierdo para moverte | Arrastra derecha para mirar | Toca centro para interactuar | Botón linterna.</p>
         <p class="warning">ADVERTENCIA: ALGO DESPERTÓ AHÍ ABAJO. NO LE QUITES LOS OJOS DE ENCIMA.</p>
       </div>
       <button id="btn-start">DESCENDER A LA MAZMORRA</button>
@@ -74,12 +76,25 @@
     </div>
 
     <button id="btn-linterna" style="display: none;">LINTERNA [E]</button>
-    
+
+    <!-- Legacy dpad (hidden, kept for compatibility) -->
     <div id="dpad" style="display: none;">
       <div id="btn-up" class="dpad-btn">W</div>
       <div id="btn-left" class="dpad-btn">A</div>
       <div id="btn-down" class="dpad-btn">S</div>
       <div id="btn-right" class="dpad-btn">D</div>
+    </div>
+
+    <!-- MOBILE CONTROLS: joystick left + look zone right -->
+    <div id="mobile-controls" style="display: none;">
+      <!-- Left: joystick -->
+      <div id="joystick-base">
+        <div id="joystick-knob"></div>
+      </div>
+      <!-- Right: look/interact zone -->
+      <div id="look-zone">
+        <div id="look-zone-hint">ARRASTRA PARA MIRAR<br>TAP PARA INTERACTUAR</div>
+      </div>
     </div>
 
     <a-entity id="rig" geometry="primitive: sphere; radius: 0.6" material="visible: false" position="0 0.6 22" 

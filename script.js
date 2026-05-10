@@ -1,6 +1,7 @@
 // script.js
 
 window.isXRActive = false;
+window.hasPlayerMoved = false; // <-- AÑADIDO: Control de primer movimiento
 
 // ==========================================
 // CONTROLADOR DE FIN DE JUEGO
@@ -306,6 +307,15 @@ AFRAME.registerComponent('physics-movement', {
     if (this.keys.a) moveX -= 1; 
     if (this.keys.d) moveX += 1;
     
+    // --- NUEVO: Detectar si el jugador intentó caminar ---
+    if (moveX !== 0 || moveZ !== 0) {
+      const startScreen = document.getElementById('start-screen');
+      if (startScreen && startScreen.style.display === 'none') {
+        window.hasPlayerMoved = true;
+      }
+    }
+    // -----------------------------------------------------
+
     if (moveX !== 0 || moveZ !== 0) {
        const length = Math.sqrt(moveX*moveX + moveZ*moveZ);
        if(length > 1) { 
@@ -386,6 +396,33 @@ AFRAME.registerComponent('stalker-ai', {
 
   tick: function (time, timeDelta) {
     if (!this.el.body || !this.playerBody.body || !timeDelta || this.isGameOver) return;
+
+    // --- NUEVO: TRUCO PARA CONGELAR AL MÍMICO ---
+    if (!window.hasPlayerMoved) {
+      const startScreen = document.getElementById('start-screen');
+      const isMenuOpen = startScreen && startScreen.style.display !== 'none';
+      
+      // Si el menú está cerrado, chequeamos si el jugador ha girado la cámara
+      if (!isMenuOpen) {
+        const camera3D = this.cameraEl.getObject3D('camera');
+        if (this.lastRot === undefined) {
+          // Guardamos la rotación inicial exacta en el primer frame tras cerrar el menú
+          this.lastRot = { x: camera3D.rotation.x, y: camera3D.rotation.y };
+        } else {
+          // Si la rotación cambia un poco, es que el jugador ha mirado a su alrededor
+          if (Math.abs(camera3D.rotation.x - this.lastRot.x) > 0.05 || 
+              Math.abs(camera3D.rotation.y - this.lastRot.y) > 0.05) {
+            window.hasPlayerMoved = true;
+          }
+        }
+      }
+
+      // Mantenemos al mímico quieto y evitamos que sus temporizadores avancen
+      this.el.body.velocity.set(0, 0, 0);
+      this.el.body.force.set(0, 0, 0);
+      return; 
+    }
+    // --------------------------------------------
 
     if (window.isMovementBlocked) {
       this.el.body.velocity.set(0, 0, 0);

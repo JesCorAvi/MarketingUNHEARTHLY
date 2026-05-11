@@ -45,7 +45,6 @@ function initMobileControls() {
   }
   requestAnimationFrame(applyRotation);
 
-  // ---- JOYSTICK VIRTUAL ----
   const joystickBase = document.getElementById('joystick-base');
   const joystickKnob = document.getElementById('joystick-knob');
   if (!joystickBase || !joystickKnob) return;

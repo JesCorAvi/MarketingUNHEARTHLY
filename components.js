@@ -271,25 +271,7 @@ AFRAME.registerComponent('stalker-ai', {
   tick: function (time, timeDelta) {
     if (!this.el.body || !this.playerBody.body || !timeDelta || this.isGameOver) return;
 
-    if (!window.hasPlayerMoved) {
-      const startScreen = document.getElementById('start-screen');
-      const isMenuOpen = startScreen && startScreen.style.display !== 'none';
-      if (!isMenuOpen) {
-        const camera3D = this.cameraEl.getObject3D('camera');
-        if (this.lastRot === undefined) {
-          this.lastRot = { x: camera3D.rotation.x, y: camera3D.rotation.y };
-        } else {
-          if (Math.abs(camera3D.rotation.x - this.lastRot.x) > 0.05 || Math.abs(camera3D.rotation.y - this.lastRot.y) > 0.05) {
-            window.hasPlayerMoved = true;
-          }
-        }
-      }
-      this.el.body.velocity.set(0, 0, 0);
-      this.el.body.force.set(0, 0, 0);
-      return; 
-    }
-
-    if (window.isMovementBlocked) {
+    if (!window.hasPlayerMoved || window.isMovementBlocked) {
       this.el.body.velocity.set(0, 0, 0);
       this.el.body.force.set(0, 0, 0);
       return; 
@@ -297,26 +279,13 @@ AFRAME.registerComponent('stalker-ai', {
 
     let currentLoot = window.lootCollected || 0;
     const isPC = !window.isMobile && !window.isXRActive;
-    const pcMultiplier = isPC ? 1.25 : 1.0;
-
-    let speedForce = this.data.force;
+    let speedForce = this.data.force * (isPC ? 1.25 : 1.0);
     let tpCooldown = 15000;
 
-    if (currentLoot === 1) { 
-        speedForce = 1000;   
-        tpCooldown = 25000;  
-    } else if (currentLoot === 2) { 
-        speedForce = 1300;   
-        tpCooldown = 20000;  
-    } else if (currentLoot === 3) { 
-        speedForce = 1600;   
-        tpCooldown = 15000;  
-    } else if (currentLoot >= 4) { 
-        speedForce = 1900;   
-        tpCooldown = 10000;  
-    }
-    
-    speedForce *= pcMultiplier; 
+    if (currentLoot === 1) { speedForce = 1000; tpCooldown = 25000; } 
+    else if (currentLoot === 2) { speedForce = 1300; tpCooldown = 20000; } 
+    else if (currentLoot === 3) { speedForce = 1600; tpCooldown = 15000; } 
+    else if (currentLoot >= 4) { speedForce = 1900; tpCooldown = 10000; }
 
     if (this.initialGracePeriod) {
       this.graceTimer += timeDelta;
@@ -327,7 +296,6 @@ AFRAME.registerComponent('stalker-ai', {
         this.initialGracePeriod = false;
         const randomSpawn = this.safeSpawns[Math.floor(Math.random() * this.safeSpawns.length)];
         this.el.body.position.set(randomSpawn.x, this.el.body.position.y, randomSpawn.z);
-        this.el.body.velocity.set(0, 0, 0);
         this.teleportTimer = 0; 
       }
       return; 
@@ -344,6 +312,8 @@ AFRAME.registerComponent('stalker-ai', {
     const loVesRealmente = this.checkVisibility(camPos, enemyPos, cameraDirection);
     const enemigoVistoYParado = loVesRealmente && window.linternaEncendida;
 
+    this.el.setAttribute('data-congelado', enemigoVistoYParado ? 'true' : 'false');
+
     if (this.stunTimer > 0) {
       this.stunTimer -= timeDelta;
       this.el.body.velocity.set(0, 0, 0);
@@ -352,17 +322,12 @@ AFRAME.registerComponent('stalker-ai', {
     }
 
     this.teleportTimer += timeDelta;
-    
     if (this.teleportTimer > tpCooldown && !enemigoVistoYParado && currentLoot > 0) {
       this.teleportTimer = 0; 
       this.stunTimer = 2000; 
 
       const teleportSound = document.getElementById('snd-teleport');
-      if (teleportSound) {
-        teleportSound.currentTime = 0;
-        teleportSound.volume = 0.8;
-        teleportSound.play();
-      }
+      if (teleportSound) { teleportSound.currentTime = 0; teleportSound.volume = 0.8; teleportSound.play(); }
 
       const behindDir = cameraDirection.clone().multiplyScalar(-1);
       behindDir.y = 0; behindDir.normalize();
@@ -371,15 +336,15 @@ AFRAME.registerComponent('stalker-ai', {
       const scene = this.el.sceneEl.object3D;
       const intersects = this.raycaster.intersectObjects(scene.children, true);
       
-      let distanciaTeleport = 6.0; 
+      let distTp = 6.0; 
       for (let i = 0; i < intersects.length; i++) {
         let obj = intersects[i].object;
         if (obj.el && (this.playerBody.contains(obj.el) || obj.el === this.el)) continue;
-        if (intersects[i].distance < 7.0) { distanciaTeleport = Math.max(1.5, intersects[i].distance - 1.5); }
+        if (intersects[i].distance < 7.0) { distTp = Math.max(1.5, intersects[i].distance - 1.5); }
         break; 
       }
       
-      const tpPos = camPos.clone().add(behindDir.multiplyScalar(distanciaTeleport));
+      const tpPos = camPos.clone().add(behindDir.multiplyScalar(distTp));
       tpPos.x = Math.max(-23, Math.min(23, tpPos.x));
       tpPos.z = Math.max(-23, Math.min(23, tpPos.z));
       
@@ -403,8 +368,10 @@ AFRAME.registerComponent('stalker-ai', {
     const distFinal = Math.sqrt(Math.pow(camPos.x - enemyPos.x, 2) + Math.pow(camPos.z - enemyPos.z, 2));
     
     if (distFinal < 1.2 && !this.isGameOver && currentLoot > 0) {
-      this.isGameOver = true;
-      window.endGame(false);
+      if (!enemigoVistoYParado) { 
+        this.isGameOver = true;
+        window.endGame(false);
+      }
     }
   }
 });
@@ -467,6 +434,10 @@ AFRAME.registerComponent('recolectable', {
     });
   }
 });
+
+// ==========================================
+// ANIMACIÓN Y SONIDO DEL PERCHERO
+// ==========================================
 AFRAME.registerComponent('movimiento-perchero', {
   schema: {
     velocidadAnimBase: { type: 'number', default: 1.5 },
@@ -480,68 +451,37 @@ AFRAME.registerComponent('movimiento-perchero', {
     this.pasoIzquierdoHecho = false;
     this.pasoDerechoHecho = false;
 
-    this.el.setAttribute('sound__left', {
-      src: '#snd-enemy-left', poolSize: 2, distanceModel: 'exponential', rolloffFactor: 2
-    });
-    this.el.setAttribute('sound__right', {
-      src: '#snd-enemy-right', poolSize: 2, distanceModel: 'exponential', rolloffFactor: 2
-    });
+    this.el.setAttribute('sound__left', { src: '#snd-enemy-left', poolSize: 2, distanceModel: 'exponential', rolloffFactor: 2 });
+    this.el.setAttribute('sound__right', { src: '#snd-enemy-right', poolSize: 2, distanceModel: 'exponential', rolloffFactor: 2 });
 
     this.yInicial = this.el.object3D.position.y;
-    
-    this.camara = document.querySelector('#player-camera');
-    this.vec3Enemigo = new THREE.Vector3();
-    this.vec3Camara = new THREE.Vector3();
-    this.dirCamara = new THREE.Vector3();
-
     this.posicionAnterior = new THREE.Vector3();
     
-    // Usamos parentEl que es lo recomendado en A-Frame
     if (this.el.parentEl) {
       this.el.parentEl.object3D.getWorldPosition(this.posicionAnterior);
     }
   },
 
   tick: function (time, timeDelta) {
-    // ¡LA CLAVE ESTÁ AQUÍ! Si timeDelta es 0, evitamos la división por cero
     if (timeDelta === 0 || window.isMovementBlocked || !this.el.parentEl) return;
 
-    // 1. CÁLCULO DE VELOCIDAD FÍSICA REAL
-    const posActual = new THREE.Vector3();
-    this.el.parentEl.object3D.getWorldPosition(posActual);
-    
-    const dx = posActual.x - this.posicionAnterior.x;
-    const dz = posActual.z - this.posicionAnterior.z;
-    const distanciaRecorrida = Math.sqrt(dx * dx + dz * dz);
-    
-    const velocidadReal = distanciaRecorrida / (timeDelta / 1000);
-    this.posicionAnterior.copy(posActual);
+    const estaCongelado = this.el.parentEl.getAttribute('data-congelado') === 'true';
 
-    // 2. DETECCIÓN DE LINTERNA (ESTATUA)
-    let estaSiendoApuntado = false;
-    
-    if (window.linternaEncendida && this.camara) {
-      this.camara.object3D.getWorldPosition(this.vec3Camara);
-      this.el.object3D.getWorldPosition(this.vec3Enemigo);
-      this.camara.object3D.getWorldDirection(this.dirCamara);
-      this.dirCamara.multiplyScalar(-1);
-      
-      this.vec3Enemigo.sub(this.vec3Camara).normalize();
-      if (this.dirCamara.angleTo(this.vec3Enemigo) < 0.4) {
-        estaSiendoApuntado = true;
-      }
-    }
-
-    if (estaSiendoApuntado) {
+    if (estaCongelado) {
       this.el.object3D.rotation.z = 0;
       this.el.object3D.position.y = this.yInicial;
       return; 
     }
 
-    // 3. ANIMACIÓN DINÁMICA
+    const posActual = new THREE.Vector3();
+    this.el.parentEl.object3D.getWorldPosition(posActual);
+    const dx = posActual.x - this.posicionAnterior.x;
+    const dz = posActual.z - this.posicionAnterior.z;
+    const velocidadReal = Math.sqrt(dx * dx + dz * dz) / (timeDelta / 1000);
+    this.posicionAnterior.copy(posActual);
+
     if (velocidadReal > 0.05) {
-      const velocidadAnimacion = velocidadReal * this.data.velocidadAnimBase;
-      this.tiempo += (timeDelta / 1000) * velocidadAnimacion;
+      this.tiempo += (timeDelta / 1000) * (velocidadReal * this.data.velocidadAnimBase);
     } else {
       this.el.object3D.rotation.z = THREE.MathUtils.lerp(this.el.object3D.rotation.z, 0, 0.1);
       this.el.object3D.position.y = THREE.MathUtils.lerp(this.el.object3D.position.y, this.yInicial, 0.1);
@@ -549,43 +489,34 @@ AFRAME.registerComponent('movimiento-perchero', {
     }
 
     const oscilacion = Math.sin(this.tiempo);
-    const salto = Math.abs(Math.sin(this.tiempo)) * this.data.amplitudSalto;
-
     const radianesInclinacion = THREE.MathUtils.degToRad(oscilacion * this.data.amplitudInclinacion);
-    this.el.object3D.rotation.z = radianesInclinacion;
-    
+    const salto = Math.abs(Math.sin(this.tiempo)) * this.data.amplitudSalto;
     const compensacionSuelo = Math.abs(Math.sin(radianesInclinacion)) * this.data.radioBase;
+
+    this.el.object3D.rotation.z = radianesInclinacion;
     this.el.object3D.position.y = this.yInicial + salto + compensacionSuelo;
 
-    // 4. SONIDO CON VELOCIDAD DINÁMICA
     const playbackSpeed = Math.max(0.8, Math.min(1.8, velocidadReal * 0.4));
 
     if (oscilacion < -0.9 && !this.pasoIzquierdoHecho) {
       this.reproducirPaso('sound__left', playbackSpeed);
-      this.pasoIzquierdoHecho = true;
-      this.pasoDerechoHecho = false;
+      this.pasoIzquierdoHecho = true; this.pasoDerechoHecho = false;
     }
     if (oscilacion > 0.9 && !this.pasoDerechoHecho) {
       this.reproducirPaso('sound__right', playbackSpeed);
-      this.pasoDerechoHecho = true;
-      this.pasoIzquierdoHecho = false;
+      this.pasoDerechoHecho = true; this.pasoIzquierdoHecho = false;
     }
   },
 
   reproducirPaso: function(componente, velocidad) {
     const soundComp = this.el.components[componente];
-    if (soundComp) {
-      if (soundComp.pool && soundComp.pool.children) {
-        soundComp.pool.children.forEach(audioNode => {
-          if (audioNode.setPlaybackRate) {
-            audioNode.setPlaybackRate(velocidad);
-          }
-        });
-      }
+    if (soundComp && soundComp.pool && soundComp.pool.children) {
+      soundComp.pool.children.forEach(n => { if (n.setPlaybackRate) n.setPlaybackRate(velocidad); });
       soundComp.playSound();
     }
   }
 });
+
 // ==========================================
 // LÓGICA DE NOTAS (INSPECTOR DE IMÁGENES)
 // ==========================================

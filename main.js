@@ -132,10 +132,10 @@ window.addEventListener('DOMContentLoaded', () => {
     tickCounter++;
 
     if (window.linternaEncendida) {
-      bateria -= 1; 
+      bateria -= window.isXRActive ? 0.60 : 0.75; // En VR: -20% consumo
       if (bateria <= 0) { bateria = 0; toggleLinterna(true); }
     } else {
-      bateria += 1; 
+      bateria += window.isXRActive ? 1.20 : 1;    // En VR: +20% recarga
       if (bateria > 100) bateria = 100;
     }
     

@@ -132,10 +132,10 @@ window.addEventListener('DOMContentLoaded', () => {
     tickCounter++;
 
     if (window.linternaEncendida) {
-      bateria -= 0.75; 
+      bateria -= 1; 
       if (bateria <= 0) { bateria = 0; toggleLinterna(true); }
     } else {
-      bateria += 2.0; 
+      bateria += 1; 
       if (bateria > 100) bateria = 100;
     }
     

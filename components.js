@@ -540,6 +540,9 @@ AFRAME.registerComponent('nota-interactiva', {
       const imgObj = new Image();
       imgObj.onload = () => {
         const imgRatio = imgObj.width / imgObj.height;
+        
+        this.imgRatio = imgRatio; 
+
         const origW = parseFloat(this.el.getAttribute('width'));
         const origH = parseFloat(this.el.getAttribute('height'));
         const origD = parseFloat(this.el.getAttribute('depth'));
@@ -580,6 +583,20 @@ AFRAME.registerComponent('nota-interactiva', {
         const vrInspector = document.getElementById('vr-inspector');
         
         vrInspector.setAttribute('src', src);
+
+        if (this.imgRatio) {
+          const maxWidth = 0.45;
+          const maxHeight = 0.60;
+          
+          if (this.imgRatio > (maxWidth / maxHeight)) {
+            vrInspector.setAttribute('width', maxWidth);
+            vrInspector.setAttribute('height', maxWidth / this.imgRatio);
+          } else {
+            vrInspector.setAttribute('width', maxHeight * this.imgRatio);
+            vrInspector.setAttribute('height', maxHeight);
+          }
+        }
+        
         vrInspectorContainer.setAttribute('visible', 'true');
         
         setTimeout(() => { window.isMovementBlocked = true; }, 100);

@@ -114,5 +114,5 @@ window.addEventListener('DOMContentLoaded', () => {
       loadingScreen.style.transition = 'opacity 0.8s ease';
       setTimeout(() => loadingScreen.style.display = 'none', 800);
     }
-  }, 15000); 
+  }, 60000); 
 });

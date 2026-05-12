@@ -88,13 +88,25 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  if (aframeAssets.length > 0) {
+if (aframeAssets.length > 0) {
     aframeAssets.forEach(asset => {
-      if (asset.hasLoaded) {
-        updateProgress();
+      // Diferenciar entre modelos de A-Frame y audios normales
+      if (asset.tagName.toLowerCase() === 'audio') {
+        // Para audios, el evento correcto es 'canplaythrough'
+        if (asset.readyState >= 3) { 
+          updateProgress(); // Ya tiene datos suficientes para reproducirse
+        } else {
+          asset.addEventListener('canplaythrough', updateProgress, { once: true });
+          asset.addEventListener('error', updateProgress, { once: true });
+        }
       } else {
-        asset.addEventListener('loaded', updateProgress, { once: true });
-        asset.addEventListener('error', updateProgress, { once: true });
+        // Para modelos .glb (a-asset-item), usamos la lógica de A-Frame
+        if (asset.hasLoaded) {
+          updateProgress();
+        } else {
+          asset.addEventListener('loaded', updateProgress, { once: true });
+          asset.addEventListener('error', updateProgress, { once: true });
+        }
       }
     });
   } else {
